@@ -2,6 +2,7 @@
 Collected information related to work package 2 on data ingest and management
 
 * [HPLT project homepage](https://hplt-project.org/)
+* [Notes from meetings on parallel data](https://docs.google.com/document/d/1tBUbn3iyFuM0kSFYDs-CfwgK6Js6lS3DM49frMvTw1w/edit?usp=sharing)
 * [Links to tools and other resources](TOOLS.md)
 
 ## New OPUS
