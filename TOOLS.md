@@ -3,6 +3,8 @@
 
 NMT training and decoding:
 
+* https://github.com/marian-nmt/marian-dev
+  * https://github.com/sfantao/lumi-marian/tree/mydev AMD Lumi compatible port (Private)
 * https://github.com/browsermt/bergamot-translator glue code between marian and software that wants to integrate marian
   * Python: https://pypi.org/project/bergamot/ ([API usage example](https://github.com/browsermt/bergamot-translator/blob/main/bindings/python/cmds.py#L71-L99))
   * Javascript (client side) https://www.npmjs.com/package/@browsermt/bergamot-translator
