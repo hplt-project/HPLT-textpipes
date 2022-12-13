@@ -3,16 +3,21 @@
 
 NMT training and decoding:
 
-* https://github.com/browsermt/bergamot-translator
-* https://github.com/XapaJIaMnu/translateLocally
-* https://github.com/mozilla/firefox-translations-training
+* https://github.com/browsermt/bergamot-translator glue code between marian and software that wants to integrate marian
+  * Python: https://pypi.org/project/bergamot/ ([API usage example](https://github.com/browsermt/bergamot-translator/blob/main/bindings/python/cmds.py#L71-L99))
+  * Javascript (client side) https://www.npmjs.com/package/@browsermt/bergamot-translator
+  * REST Server: https://github.com/ugermann/mts
+* https://github.com/XapaJIaMnu/translateLocally desktop software to run marian models
+  * https://addons.mozilla.org/en-GB/firefox/addon/translatelocally-for-firefox/ Firefox integration
+* https://github.com/browsermt/firefox-translations-training training pipeline
 * https://github.com/OpenNMT/CTranslate2
 
 
 MT Data preparation
 
-* https://github.com/thammegowda/mtdata
-* https://pypi.org/project/opustools/
+* https://github.com/thammegowda/mtdata for downloading data
+* https://pypi.org/project/opustools/ for downloading and converting data
+* https://github.com/paracrawl/tmxutil for working with TMX files
 
 
 Data filtering / curation
@@ -43,7 +48,7 @@ Language identification
 
 Sentence boundary detection:
 
-* Moses sentence splitter: [python](https://pypi.org/project/sentence-splitter/), [mosestokenizer/python](https://pypi.org/project/mosestokenizer/), [perl/CPAN](https://metacpan.org/pod/Lingua::Sentence), [original perl scripts](https://www.statmt.org/europarl/v7/tools.tgz)
+* Moses sentence splitter: [python](https://pypi.org/project/sentence-splitter/), [mosestokenizer/python](https://pypi.org/project/mosestokenizer/), [perl/CPAN](https://metacpan.org/pod/Lingua::Sentence), [original perl scripts](https://www.statmt.org/europarl/v7/tools.tgz) [ssplit-cpp](https://github.com/ugermann/ssplit-cpp)
 * https://ufal.mff.cuni.cz/udpipe
 * https://github.com/rewicks/ersatz
 
