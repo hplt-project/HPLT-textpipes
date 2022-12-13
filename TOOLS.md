@@ -34,6 +34,7 @@ Language identification
 * https://pypi.org/project/pycld2/
 * https://pypi.org/project/pycld3/
 * https://pypi.org/project/fasttext-langdetect/
+* https://pypi.org/project/fastspell/
 * https://pypi.org/project/langdetect/
 * https://github.com/saffsd/langid.py ([pypi](https://pypi.org/project/langid/), [py3langid](https://pypi.org/project/py3langid/))
 * https://pypi.org/project/polyglot/ (and https://github.com/aboSamoor/polyglot)
