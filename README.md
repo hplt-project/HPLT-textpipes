@@ -4,6 +4,7 @@ Collected information related to work package 2 on Data Ingest and Management (M
 
 
 * [Notes from meetings on parallel data](https://docs.google.com/document/d/1tBUbn3iyFuM0kSFYDs-CfwgK6Js6lS3DM49frMvTw1w/edit?usp=sharing)
+* [HPLT overleaf template](https://www.overleaf.com/7181487261rqbcnknkkppy)
 * [Links to tools and other resources](TOOLS.md)
 
 
