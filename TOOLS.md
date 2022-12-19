@@ -27,6 +27,7 @@ Data filtering / curation
 * https://github.com/Helsinki-NLP/OpusFilter
 * https://github.com/bitextor/bicleaner
 * https://github.com/bitextor/bifixer
+* http://corpus.tools/wiki/Onion - duplicate removal
 
 
 Data conversion
