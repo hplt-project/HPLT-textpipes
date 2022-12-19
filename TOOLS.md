@@ -27,7 +27,10 @@ Data filtering / curation
 * https://github.com/Helsinki-NLP/OpusFilter
 * https://github.com/bitextor/bicleaner
 * https://github.com/bitextor/bifixer
-* http://corpus.tools/wiki/Onion - duplicate removal
+* http://corpus.tools/
+  * http://corpus.tools/wiki/Justext - boilerplate removal
+  * http://corpus.tools/wiki/Chared - character encoding detection
+  * http://corpus.tools/wiki/Onion - duplicate removal
 
 
 Data conversion
@@ -63,6 +66,7 @@ Tokenization:
 * https://pypi.org/project/mosestokenizer/
 * https://github.com/alvations/sacremoses and https://github.com/isi-nlp/sacremoses
 * https://github.com/marian-nmt/moses-scripts
+* http://corpus.tools/wiki/Unitok
 
 
 Document alignment
