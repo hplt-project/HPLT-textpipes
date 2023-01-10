@@ -1,6 +1,11 @@
 # Links to relevant tools
 
 
+Pipelines / workflows:
+
+* https://github.com/hplt-project/empty-train
+* https://github.com/hplt-project/empty-trainer
+
 NMT training and decoding:
 
 * https://github.com/marian-nmt/marian-dev
