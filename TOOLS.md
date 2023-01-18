@@ -25,11 +25,12 @@ MT Data preparation
 * https://github.com/thammegowda/mtdata for downloading data
 * https://pypi.org/project/opustools/ for downloading and converting data
 * https://github.com/paracrawl/tmxutil for working with TMX files
-
+* https://github.com/sortiz/tmxt extract TMX to Moses tab-separated format.
 
 Data filtering / curation
 
 * https://github.com/Helsinki-NLP/OpusFilter
+* https://github.com/bitextor/bicleaner-ai
 * https://github.com/bitextor/bicleaner
 * https://github.com/bitextor/bifixer
 * http://corpus.tools/
@@ -50,7 +51,7 @@ Language identification
 * https://pypi.org/project/pycld2/
 * https://pypi.org/project/pycld3/
 * https://pypi.org/project/fasttext-langdetect/
-* https://pypi.org/project/fastspell/
+* https://pypi.org/project/fastspell/ (FastText predictions refined with Hunspell dictionaries)
 * https://pypi.org/project/langdetect/
 * https://github.com/saffsd/langid.py ([pypi](https://pypi.org/project/langid/), [py3langid](https://pypi.org/project/py3langid/))
 * https://pypi.org/project/polyglot/ (and https://github.com/aboSamoor/polyglot)
@@ -62,6 +63,8 @@ Sentence boundary detection:
 * Moses sentence splitter: [python](https://pypi.org/project/sentence-splitter/), [mosestokenizer/python](https://pypi.org/project/mosestokenizer/), [perl/CPAN](https://metacpan.org/pod/Lingua::Sentence), [original perl scripts](https://www.statmt.org/europarl/v7/tools.tgz) [ssplit-cpp](https://github.com/ugermann/ssplit-cpp)
 * https://ufal.mff.cuni.cz/udpipe
 * https://github.com/rewicks/ersatz
+* https://github.com/loomchild/segment Loomchild SRX segmenter
+  * Python wrapper: https://github.com/bitextor/loomchild-segment-py
 
 
 Tokenization:
@@ -76,15 +79,17 @@ Tokenization:
 
 Document alignment
 
-* https://github.com/bitextor/bitextor/tree/master/document-aligner
+* https://github.com/bitextor/bitextor/tree/master/document-aligner based on MT
+* https://github.com/bitextor/neural-document-aligner based on sentence embeddings
 
 
 Sentence alignment
 
 * https://github.com/Helsinki-NLP/yasa
-* https://github.com/danielvarga/hunalign
+* https://github.com/danielvarga/hunalign based on bilingual dictionaries
 * https://github.com/rsennrich/bleualign ([pypi](https://pypi.org/project/pypi-bleualign/))
-* https://github.com/bitextor/bleualign-cpp
+* https://github.com/bitextor/bleualign-cpp based on MT
+* https://github.com/bitextor/vecalign based on sentence embeddings
 
 
 Word alignment
@@ -93,3 +98,9 @@ Word alignment
 * https://github.com/clab/fast_align
 * https://github.com/cisnlp/simalign
 * https://github.com/neulab/awesome-align
+
+
+Sentence embeddings:
+* https://github.com/facebookresearch/LASER/
+* https://github.com/facebookresearch/LASER/tree/main/nllb LASER2 and LASER3
+* https://huggingface.co/sentence-transformers/LaBSE
