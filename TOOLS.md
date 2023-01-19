@@ -37,7 +37,8 @@ Data filtering / curation
   * http://corpus.tools/wiki/Justext - boilerplate removal
   * http://corpus.tools/wiki/Chared - character encoding detection
   * http://corpus.tools/wiki/Onion - duplicate removal
-
+* https://huggingface.co/spaces/huggingface/text-data-filtering links to a pdf but most of its links are dead
+  * https://github.com/bigscience-workshop/data-preparation/tree/main/preprocessing seems to be the related filtering code
 
 Data conversion
 
