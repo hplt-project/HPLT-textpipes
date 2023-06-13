@@ -2,11 +2,11 @@
 
 ## Paths
 
-Scripts: `/project/project_462000252/zaragoza/cirrus-scripts`
+Scripts: `/project/project_462000252/zaragoza/cirrus-scripts/`
 
 This is [the lumi branch of cirrus-scripts](https://github.com/paracrawl/cirrus-scripts/tree/lumi).
 
-Data: `/scratch/project_465000498/hplt/data`
+Data: `/scratch/project_465000498/one/text/{ia,cc}/`
 
 Folders are split in `*-batches` and `*-shards`. The `plain_text.gz`, `url.gz` and `source.gz` are sourced from the data centres that have the warcs and we ran warc2text and giashard on. All other files are results from the processing steps in cirrus-scripts. See the [README](https://github.com/paracrawl/cirrus-scripts/tree/lumi#data-structure) for what file contains what.
 
@@ -27,9 +27,6 @@ All the remaining arguments are assumed to be language codes. Use the ones that 
 
 ## Dashboard
 
-Jelmer maintains [a job dashboard](https://github.com/jelmervdl/paracrawl-dashboard) that is a left-over from Paracrawl. You can run it on LUMI as well, using the following steps:
+Jelmer maintains [a job dashboard](https://github.com/jelmervdl/paracrawl-dashboard) that is a left-over from Paracrawl.
 
-1. Think of a nice random number (higher than 1024!) that nobody else thought of: your port number. E.g `8005`.
-2. SSH into lumi with port forwarding: `ssh -L 8005:localhost:8005 you@lumi.csc.fi`
-3. Run the dashboard server: `/project/project_462000252/jderlinde/paracrawl-dashboard/dashboard.sh 8005`
-4. Go to http://localhost:8005/ and tada!
+You can access this dashboard at https://paracrawl.ikhoefgeen.nl/. It shows all jobs that have been scheduled through the shared cirrus-scripts/.
