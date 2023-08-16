@@ -7,6 +7,10 @@ Collected information related to work package 2 on Data Ingest and Management (M
 * [HPLT overleaf template](https://www.overleaf.com/7181487261rqbcnknkkppy)
 * [Links to tools and other resources](TOOLS.md)
 
+## Code
+
+- `smart_rename.py`: a Python script to rename monotexted files using sequential numbering (after merging multiple crawls together)
+
 
 ## Objectives
 
