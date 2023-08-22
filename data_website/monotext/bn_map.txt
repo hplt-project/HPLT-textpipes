@@ -1,0 +1,16 @@
+https://data.hplt-project.org/one/monotext/bn/10.jsonl.zst
+https://data.hplt-project.org/one/monotext/bn/11.jsonl.zst
+https://data.hplt-project.org/one/monotext/bn/12.jsonl.zst
+https://data.hplt-project.org/one/monotext/bn/13.jsonl.zst
+https://data.hplt-project.org/one/monotext/bn/14.jsonl.zst
+https://data.hplt-project.org/one/monotext/bn/15.jsonl.zst
+https://data.hplt-project.org/one/monotext/bn/16.jsonl.zst
+https://data.hplt-project.org/one/monotext/bn/1.jsonl.zst
+https://data.hplt-project.org/one/monotext/bn/2.jsonl.zst
+https://data.hplt-project.org/one/monotext/bn/3.jsonl.zst
+https://data.hplt-project.org/one/monotext/bn/4.jsonl.zst
+https://data.hplt-project.org/one/monotext/bn/5.jsonl.zst
+https://data.hplt-project.org/one/monotext/bn/6.jsonl.zst
+https://data.hplt-project.org/one/monotext/bn/7.jsonl.zst
+https://data.hplt-project.org/one/monotext/bn/8.jsonl.zst
+https://data.hplt-project.org/one/monotext/bn/9.jsonl.zst

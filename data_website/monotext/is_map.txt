@@ -1,0 +1,4 @@
+https://data.hplt-project.org/one/monotext/is/1.jsonl.zst
+https://data.hplt-project.org/one/monotext/is/2.jsonl.zst
+https://data.hplt-project.org/one/monotext/is/3.jsonl.zst
+https://data.hplt-project.org/one/monotext/is/4.jsonl.zst

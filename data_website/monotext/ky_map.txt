@@ -1,0 +1,4 @@
+https://data.hplt-project.org/one/monotext/ky/1.jsonl.zst
+https://data.hplt-project.org/one/monotext/ky/2.jsonl.zst
+https://data.hplt-project.org/one/monotext/ky/3.jsonl.zst
+https://data.hplt-project.org/one/monotext/ky/4.jsonl.zst
