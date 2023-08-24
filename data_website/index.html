@@ -30,15 +30,92 @@ The number of shards per language depends on the size of the specific corpus.
 </p>
 
 <p> The simplest way to download the data is to use <i>wget -i</i> with the
-language-specific mapping files containing full URLs for all shards of this particular language:
+language-specific mapping files containing full URLs for all shards of this particular language, for example:<br/>
+<code>wget -i https://data.hplt-project.org/one/monotext/eu_map.txt</code>
 </p>
 
+<p>If you want to download all the 22 Terabytes in one click, use <br/>
+<code>wget -nH -x --cut-dirs=2 -i https://data.hplt-project.org/one/monotext/hplt_monolingual_map_all_1.txt</code>
+</p>
+
+<h5>Language-specific mapping files</h5>
+
 <ul>
-	<li><a href="https://data.hplt-project.org/one/monotext/af_map.txt">Afrikaans</a></li>
-	<li><a href="https://data.hplt-project.org/one/monotext/bg_map.txt">Bulgarian</a></li>
-	<li><a href="https://data.hplt-project.org/one/monotext/hbs_map.txt">Serbo-Croatian</a></li>
-	<li><a href="https://data.hplt-project.org/one/monotext/uk_map.txt">Ukrainian</a></li>
-	<li>...more soon!</li>
+<li><a href="https://data.hplt-project.org/one/monotext/af_map.txt">Afrikaans</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/ar_map.txt">Arabic</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/az_map.txt">Azerbaijani</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/be_map.txt">Belarusian</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/bg_map.txt">Bulgarian</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/bn_map.txt">Bengali</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/ca_map.txt">Catalan</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/cs_map.txt">Czech</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/cy_map.txt">Welsh</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/da_map.txt">Danish</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/de_map.txt">German</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/el_map.txt">Greek</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/en_map.txt">English</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/eo_map.txt">Esperanto</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/es_map.txt">Spanish</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/et_map.txt">Estonian</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/eu_map.txt">Basque</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/fa_map.txt">Persian</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/fi_map.txt">Finnish</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/fr_map.txt">French</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/ga_map.txt">Irish</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/gl_map.txt">Galician</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/gu_map.txt">Gujarati</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/hbs_map.txt">Serbo-Croatian</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/he_map.txt">Hebrew</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/hi_map.txt">Hindi</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/hu_map.txt">Hungarian</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/hy_map.txt">Armenian</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/id_map.txt">Indonesian</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/is_map.txt">Icelandic</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/it_map.txt">Italian</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/ja_map.txt">Japanese</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/ka_map.txt">Georgian</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/kk_map.txt">Kazakh</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/kn_map.txt">Kannada</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/ko_map.txt">Korean</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/ky_map.txt">Kyrgyz</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/la_map.txt">Latin</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/lt_map.txt">Lithuanian</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/lv_map.txt">Latvian</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/mk_map.txt">Macedonian</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/ml_map.txt">Malayalam</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/mn_map.txt">Mongolian</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/mr_map.txt">Marathi</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/ms_map.txt">Malay</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/mt_map.txt">Maltese</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/my_map.txt">Burmese</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/nb_map.txt">Norwegian Bokmål</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/ne_map.txt">Nepali</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/nl_map.txt">Dutch</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/nn_map.txt">Norwegian Nynorsk</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/pa_map.txt">Punjabi</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/pl_map.txt">Polish</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/ps_map.txt">Pashto</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/pt_map.txt">Portuguese</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/ro_map.txt">Romanian</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/ru_map.txt">Russian</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/si_map.txt">Sinhala</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/sk_map.txt">Slovak</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/sl_map.txt">Slovenian</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/so_map.txt">Somali</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/sq_map.txt">Albanian</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/sv_map.txt">Swedish</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/sw_map.txt">Swahili</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/ta_map.txt">Tamil</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/te_map.txt">Telugu</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/th_map.txt">Thai</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/tl_map.txt">Tagalog</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/tr_map.txt">Turkish</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/tt_map.txt">Tatar</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/uk_map.txt">Ukrainian</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/ur_map.txt">Urdu</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/uz_map.txt">Uzbek</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/vi_map.txt">Vietnamese</a></li>
+<li><a href="https://data.hplt-project.org/one/monotext/zh_map.txt">Chinese</a></li>
 </ul>
 
 <h3>Bilingual data</h3>
@@ -79,7 +156,7 @@ So, it is likely to contain high portions of non-parallel sentences.
 <p>These data are released under this licensing scheme:</p>
 <ul>
 <li>We do not own any of the text from which these text data has been extracted.</li>
-<li>We license the actual packaging of these text data under the <a href="https://creativecommons.org/share-your-work/public-domain/cc0/" target="_blank" class="btn-link btn-dark"><strong>Creative Commons CC0 license ("no rights reserved")</strong></a>.</li>
+<li>We license the actual packaging of these text data under the <a href="https://creativecommons.org/share-your-work/public-domain/cc0/" target="_blank"><strong>Creative Commons CC0 license ("no rights reserved")</strong></a>.</li>
 </ul>
 <hr>
 <h3>Notice and take down policy</h3>
@@ -101,4 +178,5 @@ So, it is likely to contain high portions of non-parallel sentences.
 </small>
 </body> 
 </html>
+
 
