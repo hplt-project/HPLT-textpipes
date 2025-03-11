@@ -1,4 +1,4 @@
-# HPLT PipeLineTools
+# HPLT TextPipes
 
 This is a schematic step-by-step description of data processing (text extraction and cleaning) pipeline used to create [HPLT v2 datasets](https://hplt-project.org/datasets/v2.0).
 
