@@ -82,7 +82,6 @@ def handle_lb(elem):
 def handle_hi(elem):
     rend = elem.get("rend", "")
 
-    # Process content including nested elements
     result = []
     if elem.text:
         result.append(elem.text)
