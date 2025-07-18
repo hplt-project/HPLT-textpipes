@@ -24,7 +24,8 @@ HANDLERS = {
     "item": lambda elem: handle_item(elem),
     "lb": lambda elem: handle_lb(elem),
     "hi": lambda elem: handle_inline_formatting(elem),
-    "del": lambda elem: handle_inline_formatting(elem)
+    "del": lambda elem: handle_inline_formatting(elem),
+    "code": lambda elem: handle_code(elem)
 }
 
 
@@ -79,6 +80,22 @@ def handle_div(elem):
 
 def handle_lb(elem):
     return [""]
+
+
+def handle_code(elem):
+    """Handle code blocks (from <pre> tags)."""
+    text_parts = extract_text_content(elem)
+    text = "".join(text_parts).rstrip()
+
+    if text:
+        # Split into lines and format as markdown code block
+        lines = text.split('\n')
+        result = ["```"]
+        result.extend(lines)
+        result.append("```")
+        return result
+    else:
+        return []
 
 
 def handle_inline_formatting(elem):
