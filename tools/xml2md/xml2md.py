@@ -17,12 +17,14 @@ class ConversionError(Exception):
 HANDLERS = {
     "main": lambda elem: handle_div(elem),
     "div": lambda elem: handle_div(elem),
+    "body": lambda elem: handle_div(elem),
     "head": lambda elem: handle_head(elem),
     "p": lambda elem: handle_p(elem),
     "list": lambda elem: handle_list(elem),
     "item": lambda elem: handle_item(elem),
     "lb": lambda elem: handle_lb(elem),
-    "hi": lambda elem: handle_hi(elem)
+    "hi": lambda elem: handle_inline_formatting(elem),
+    "del": lambda elem: handle_inline_formatting(elem)
 }
 
 
@@ -79,9 +81,7 @@ def handle_lb(elem):
     return [""]
 
 
-def handle_hi(elem):
-    rend = elem.get("rend", "")
-
+def handle_inline_formatting(elem):
     result = []
     if elem.text:
         result.append(elem.text)
@@ -97,20 +97,26 @@ def handle_hi(elem):
     if not text:
         return []
 
-    if rend == "#b":
-        return [f"**{text}**"]
-    elif rend == "#i":
-        return [f"*{text}*"]
-    elif rend == "#u":
-        return [f"__{text}__"]
-    elif rend == "#t":
-        return [f"`{text}`"]
-    elif rend == "#sup":
-        return [f"<sup>{text}</sup>"]
-    elif rend == "#sub":
-        return [f"<sub>{text}</sub>"]
+    if elem.tag == "hi":
+        rend = elem.get("rend", "")
+        if rend == "#b":
+            return [f"**{text}**"]
+        elif rend == "#i":
+            return [f"*{text}*"]
+        elif rend == "#u":
+            return [f"__{text}__"]
+        elif rend == "#t":
+            return [f"`{text}`"]
+        elif rend == "#sup":
+            return [f"<sup>{text}</sup>"]
+        elif rend == "#sub":
+            return [f"<sub>{text}</sub>"]
+        else:
+            raise ConversionError(f"Unknown or missing rend attribute for hi element: '{rend}'")
+    elif elem.tag == "del":
+        return [f"~~{text}~~"]
     else:
-        raise ConversionError(f"Unknown or missing rend attribute for hi element: '{rend}'")
+        raise ConversionError(f"Unsupported inline formatting element: {elem.tag}")
 
 
 def handle_list(elem, depth=0):
