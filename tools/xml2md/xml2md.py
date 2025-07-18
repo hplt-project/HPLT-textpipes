@@ -52,8 +52,18 @@ def handle_head(elem):
 
     level = max(1, min(6, level))
 
-    text_parts = extract_text_content(elem)
-    text = "".join(text_parts).strip()
+    # Process children with inline context for formatting
+    result = []
+    if elem.text:
+        result.append(elem.text)
+
+    for child in elem:
+        child_content = process_element(child, inline_context=True)
+        result.extend(child_content)
+        if child.tail:
+            result.append(child.tail)
+
+    text = "".join(result).strip()
 
     if text:
         return [f"{'#' * level} {text}"]
@@ -62,9 +72,17 @@ def handle_head(elem):
 
 
 def handle_p(elem):
-    text_parts = extract_text_content(elem)
-    text = "".join(text_parts).strip()
+    result = []
+    if elem.text:
+        result.append(elem.text)
 
+    for child in elem:
+        child_content = process_element(child, inline_context=True)
+        result.extend(child_content)
+        if child.tail:
+            result.append(child.tail)
+
+    text = "".join(result).strip()
     if text:
         return [text]
     else:
@@ -73,8 +91,14 @@ def handle_p(elem):
 
 def handle_div(elem):
     result = []
-    for child in elem:
-        result.extend(process_element(child))
+    for i, child in enumerate(elem):
+        child_result = process_element(child)
+        result.extend(child_result)
+
+        # Add line break after block elements (except for the last element)
+        if i < len(elem) - 1 and child.tag in ["p", "head", "list", "code"]:
+            result.append("")
+
     return result
 
 
@@ -82,20 +106,25 @@ def handle_lb(elem):
     return [""]
 
 
-def handle_code(elem):
-    """Handle code blocks (from <pre> tags)."""
+def handle_code(elem, inline_context=False):
+    """Handle code elements - inline code or code blocks."""
     text_parts = extract_text_content(elem)
     text = "".join(text_parts).rstrip()
 
-    if text:
-        # Split into lines and format as markdown code block
+    if not text:
+        return []
+
+    # Determine if this should be inline or block code
+    # If we're in an inline context (inside a paragraph, etc.), use inline code
+    if inline_context:
+        return [f"`{text}`"]
+    else:
+        # Block-level code block
         lines = text.split('\n')
         result = ["```"]
         result.extend(lines)
         result.append("```")
         return result
-    else:
-        return []
 
 
 def handle_inline_formatting(elem):
@@ -104,7 +133,7 @@ def handle_inline_formatting(elem):
         result.append(elem.text)
 
     for child in elem:
-        child_content = process_element(child)
+        child_content = process_element(child, inline_context=True)
         result.extend(child_content)
         if child.tail:
             result.append(child.tail)
@@ -172,7 +201,7 @@ def handle_item(elem, depth=0):
             nested_list = handle_list(child, depth + 1)
             result.extend(nested_list)
         else:
-            child_content = process_element(child)
+            child_content = process_element(child, inline_context=True)
             result.extend(child_content)
 
         if child.tail and child.tail.strip():
@@ -187,12 +216,17 @@ def handle_item(elem, depth=0):
     return result
 
 
-def process_element(elem):
+def process_element(elem, inline_context=False):
     if elem.tag not in HANDLERS:
         raise ConversionError(f"No handler for element: {elem.tag}")
 
     handler = HANDLERS[elem.tag]
-    return handler(elem)
+
+    # Special handling for code elements to pass context
+    if elem.tag == "code":
+        return handle_code(elem, inline_context)
+    else:
+        return handler(elem)
 
 
 def xml_to_markdown(xml_string, line_num=None):
