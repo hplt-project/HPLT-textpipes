@@ -21,7 +21,8 @@ HANDLERS = {
     "p": lambda elem: handle_p(elem),
     "list": lambda elem: handle_list(elem),
     "item": lambda elem: handle_item(elem),
-    "lb": lambda elem: handle_lb(elem)
+    "lb": lambda elem: handle_lb(elem),
+    "hi": lambda elem: handle_hi(elem)
 }
 
 
@@ -78,6 +79,41 @@ def handle_lb(elem):
     return [""]
 
 
+def handle_hi(elem):
+    rend = elem.get("rend", "")
+
+    # Process content including nested elements
+    result = []
+    if elem.text:
+        result.append(elem.text)
+
+    for child in elem:
+        child_content = process_element(child)
+        result.extend(child_content)
+        if child.tail:
+            result.append(child.tail)
+
+    text = "".join(result).strip()
+
+    if not text:
+        return []
+
+    if rend == "#b":
+        return [f"**{text}**"]
+    elif rend == "#i":
+        return [f"*{text}*"]
+    elif rend == "#u":
+        return [f"__{text}__"]
+    elif rend == "#t":
+        return [f"`{text}`"]
+    elif rend == "#sup":
+        return [f"<sup>{text}</sup>"]
+    elif rend == "#sub":
+        return [f"<sub>{text}</sub>"]
+    else:
+        raise ConversionError(f"Unknown or missing rend attribute for hi element: '{rend}'")
+
+
 def handle_list(elem, depth=0):
     if depth >= MAX_LIST_DEPTH:
         raise ConversionError(f"List nesting depth exceeded maximum of {MAX_LIST_DEPTH}")
@@ -116,6 +152,9 @@ def handle_item(elem, depth=0):
         else:
             child_content = process_element(child)
             result.extend(child_content)
+
+        if child.tail and child.tail.strip():
+            result.append(child.tail.strip())
 
     if not result:
         text_parts = extract_text_content(elem)
