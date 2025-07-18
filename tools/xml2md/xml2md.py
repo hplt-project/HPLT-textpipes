@@ -25,7 +25,8 @@ HANDLERS = {
     "lb": lambda elem: handle_lb(elem),
     "hi": lambda elem: handle_inline_formatting(elem),
     "del": lambda elem: handle_inline_formatting(elem),
-    "code": lambda elem: handle_code(elem)
+    "code": lambda elem: handle_code(elem),
+    "quote": lambda elem: handle_quote(elem)
 }
 
 
@@ -96,7 +97,7 @@ def handle_div(elem):
         result.extend(child_result)
 
         # Add line break after block elements (except for the last element)
-        if i < len(elem) - 1 and child.tag in ["p", "head", "list", "code"]:
+        if i < len(elem) - 1 and child.tag in ["p", "head", "list", "code", "quote"]:
             result.append("")
 
     return result
@@ -125,6 +126,28 @@ def handle_code(elem, inline_context=False):
         result.extend(lines)
         result.append("```")
         return result
+
+
+def handle_quote(elem):
+    """Handle blockquotes."""
+    result = []
+    if elem.text:
+        result.append(elem.text)
+
+    for child in elem:
+        child_content = process_element(child, inline_context=True)
+        result.extend(child_content)
+        if child.tail:
+            result.append(child.tail)
+
+    text = "".join(result).strip()
+    if text:
+        # Split into lines and prefix each with > for blockquote
+        lines = text.split('\n')
+        quoted_lines = [f"> {line}" if line.strip() else ">" for line in lines]
+        return quoted_lines
+    else:
+        return []
 
 
 def handle_inline_formatting(elem):
