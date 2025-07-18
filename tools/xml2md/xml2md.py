@@ -3,27 +3,212 @@
 import argparse
 import sys
 import jsonlines
+import xml.etree.ElementTree as ET
+import re
+
+MAX_LIST_DEPTH = 5
 
 
-def process(item):
+class ConversionError(Exception):
+    """Custom exception for conversion errors."""
+    pass
+
+
+HANDLERS = {
+    "main": lambda elem: handle_div(elem),
+    "div": lambda elem: handle_div(elem),
+    "head": lambda elem: handle_head(elem),
+    "p": lambda elem: handle_p(elem),
+    "list": lambda elem: handle_list(elem),
+    "item": lambda elem: handle_item(elem),
+    "lb": lambda elem: handle_lb(elem)
+}
+
+
+def extract_text_content(elem):
+    result = []
+    if elem.text:
+        result.append(elem.text)
+
+    for child in elem:
+        result.extend(extract_text_content(child))
+        if child.tail:
+            result.append(child.tail)
+
+    return result
+
+
+def handle_head(elem):
+    rend = elem.get("rend", "h3")
+
+    if rend.startswith("h") and len(rend) > 1 and rend[1:].isdigit():
+        level = int(rend[1:])
+    else:
+        level = 3
+
+    level = max(1, min(6, level))
+
+    text_parts = extract_text_content(elem)
+    text = "".join(text_parts).strip()
+
+    if text:
+        return [f"{'#' * level} {text}"]
+    else:
+        return []
+
+
+def handle_p(elem):
+    text_parts = extract_text_content(elem)
+    text = "".join(text_parts).strip()
+
+    if text:
+        return [text]
+    else:
+        return []
+
+
+def handle_div(elem):
+    result = []
+    for child in elem:
+        result.extend(process_element(child))
+    return result
+
+
+def handle_lb(elem):
+    return [""]
+
+
+def handle_list(elem, depth=0):
+    if depth >= MAX_LIST_DEPTH:
+        raise ConversionError(f"List nesting depth exceeded maximum of {MAX_LIST_DEPTH}")
+
+    result = []
+    list_type = elem.get("rend", "ul")
+
+    for i, child in enumerate(elem):
+        if child.tag != "item":
+            raise ConversionError(f"Unexpected element '{child.tag}' in list, expected 'item'")
+
+        item_content = handle_item(child, depth)
+        if item_content:
+            indent = "  " * depth
+            if list_type == "ol":
+                result.append(f"{indent}{i+1}. {item_content[0]}")
+            else:
+                result.append(f"{indent}- {item_content[0]}")
+
+            for line in item_content[1:]:
+                result.append(f"{indent}  {line}")
+
+    return result
+
+
+def handle_item(elem, depth=0):
+    result = []
+
+    if elem.text and elem.text.strip():
+        result.append(elem.text.strip())
+
+    for child in elem:
+        if child.tag == "list":
+            nested_list = handle_list(child, depth + 1)
+            result.extend(nested_list)
+        else:
+            child_content = process_element(child)
+            result.extend(child_content)
+
+    if not result:
+        text_parts = extract_text_content(elem)
+        text = "".join(text_parts).strip()
+        if text:
+            result.append(text)
+
+    return result
+
+
+def process_element(elem):
+    if elem.tag not in HANDLERS:
+        raise ConversionError(f"No handler for element: {elem.tag}")
+
+    handler = HANDLERS[elem.tag]
+    return handler(elem)
+
+
+def xml_to_markdown(xml_string, line_num=None):
+    try:
+        root = ET.fromstring(xml_string)
+        main_elem = root.find(".//main")
+        if main_elem is None:
+            line_prefix = f"Line {line_num}: " if line_num else ""
+            print(f"{line_prefix}No main element found in XML", file=sys.stderr)
+            return None
+
+        return process_element(main_elem)
+
+    except ET.ParseError as e:
+        line_prefix = f"Line {line_num}: " if line_num else ""
+        print(f"{line_prefix}Malformed XML content: {e}", file=sys.stderr)
+        return None
+
+    except ConversionError as e:
+        line_prefix = f"Line {line_num}: " if line_num else ""
+        print(f"{line_prefix}Conversion error: {e}", file=sys.stderr)
+        return None
+
+
+def process_single(item, line_num=None):
     if "x" not in item:
         return item
 
+    markdown_content = xml_to_markdown(item["x"], line_num)
 
+    if markdown_content:
+        item["md"] = "\n".join(markdown_content)
 
     return item
 
 
-def main():
+def process_buffer(buffer, start_line_num):
+    done = []
+    for i, item in enumerate(buffer):
+        line_num = start_line_num + i
+        done.append(process_single(item, line_num))
+    return done
 
-    with jsonlines.Reader(sys.stdin) as reader, jsonlines.Writer(sys.stdout) as writer:
-        for item in reader:
-            writer.write(process(item))
+
+def main(buffer_size=1000):
+    with (jsonlines.Reader(sys.stdin) as reader,
+          jsonlines.Writer(sys.stdout) as writer):
+
+        buffer = []
+        line_num = 1
+
+        for line in reader:
+            buffer.append(line)
+
+            if len(buffer) >= buffer_size:
+                start_line = line_num - len(buffer) + 1
+                processed = process_buffer(buffer, start_line)
+                for item in processed:
+                    writer.write(item)
+                buffer = []
+
+            line_num += 1
+
+        if buffer:
+            start_line = line_num - len(buffer)
+            processed = process_buffer(buffer, start_line)
+            for item in processed:
+                writer.write(item)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Convert trafilatura XML output to markdown")
-
+    parser.add_argument("--buffer-size", type=int, default=1000, help="Buffer size for processing lines")
+    parser.add_argument("--max-list-depth", type=int, default=5, help="Maximum nesting depth for lists")
     args = parser.parse_args()
-    main()
+
+    MAX_LIST_DEPTH = args.max_list_depth
+
+    main(args.buffer_size)
 
