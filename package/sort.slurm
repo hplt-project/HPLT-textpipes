@@ -7,7 +7,7 @@
 #SBATCH --mail-type=FAIL
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=32
-#SBATCH --mem-per-cpu=4064M
+#SBATCH --mem-per-cpu=4096M
 
 set -x;
 
@@ -48,7 +48,7 @@ locale;
 python ${PACKAGE}/prepare.py ${FILE} \
 | sort --temporary-directory=${FLASH}/${USER} \
     --key=1,1 --numeric-sort --reverse \
-    --parallel=${CORES} --buffer-size=128G \
+    --parallel=${CORES} --buffer-size=120G \
 | zstd -z -10 -T${CORES} -f - -o ${OUTPUT}
 
 echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] prepare.slurm: all processing complete."
