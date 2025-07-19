@@ -9,6 +9,8 @@
 #SBATCH --cpus-per-task=64
 #SBATCH --mem-per-cpu=4064M
 
+set -x;
+
 OELLM=/pfs/lustrep2/scratch/project_462000953/training/catalogue;
 
 if [ -z "${1}" ]; then
@@ -20,9 +22,11 @@ if [ ! -f ${1} ]; then
   exit 1;
 fi
 FILE=$(realpath ${1});
+OUTPUT=${FILE%.zst}.s.zst;
 
 echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] prepare.slurm: root in $(pwd);"
 echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] prepare.slurm: processing ${FILE};"
+echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] prepare.slurm: writing to ${OUTPUT};"
 echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] prepare.slurm: with ${CORES} cores."
 
 
@@ -39,10 +43,6 @@ fi
 
 export LC_ALL=C;
 locale;
-
-OUTPUT=${FILE%.zst}.s.zst;
-echo $FILE $OUTPUT
-exit
 
 python ${PACKAGE}/prepare.py ${file} \
 | sort --temporary-directory=${FLASH}/${USER} \
