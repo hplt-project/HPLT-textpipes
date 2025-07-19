@@ -47,7 +47,7 @@ locale;
 
 python ${PACKAGE}/prepare.py ${FILE} \
 | sort --temporary-directory=${FLASH}/${USER} \
-    --numeric-sort --reverse \
+    --key=1,1 --numeric-sort --reverse \
     --parallel=${CORES} --buffer-size=240G \
 | zstd -z -10 -T${CORES} -f - -o ${OUTPUT}
 
