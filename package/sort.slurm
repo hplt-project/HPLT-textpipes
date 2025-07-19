@@ -22,7 +22,7 @@ if [ ! -f ${1} ]; then
   echo "prepare.slurm: invalid input file ${1}; exit." >&2;
   exit 1;
 fi
-FILE=$(realpath ${1});
+FILE=$(realpath --strip ${1});
 OUTPUT=${FILE%.zst}.s.zst;
 
 echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] prepare.slurm: root in $(pwd);"
@@ -49,7 +49,7 @@ python ${PACKAGE}/prepare.py ${FILE} \
 | sort --temporary-directory=${FLASH}/${USER} \
     --key=1,1 --numeric-sort --reverse \
     --parallel=${CORES} --buffer-size=120G \
-| zstd -z -10 -T${CORES} -f - -o ${OUTPUT}
+| zstd --no-progress -z -10 -T${CORES} -f - -o ${OUTPUT}
 
 echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] prepare.slurm: all processing complete."
 exit 0;
