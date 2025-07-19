@@ -81,11 +81,14 @@ def main():
       outputs[bin] = {"file": name, "stream": stream, "i": arguments.start, "n": 0};
       o += 1;
     #
-    #
+    # write the current document (sans the _key_ prefix) to its WDS bin
     #
     output = outputs[bin];
     output["stream"].write(input["line"]);
     output["n"] += 1;
+    #
+    # advance to new output file after _arguments.n_ documents
+    #
     if arguments.n is not None and output["n"] >= arguments.n:
       output["stream"].close();
       name = f"{output["i"] + 1}_{bin}_jsonl.zst";
@@ -96,7 +99,8 @@ def main():
       o += 1;
     n += 1;
     #
-    # 
+    # update next line and key from current input file;
+    # re-insert into the priority queue, unless exhausted
     #
     key, input = parse(input, arguments.min, arguments.max);
     if key is None: continue;
