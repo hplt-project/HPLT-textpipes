@@ -48,7 +48,7 @@ locale;
 python ${PACKAGE}/prepare.py ${FILE} \
 | sort --temporary-directory=${FLASH}/${USER} \
     --numeric-sort --parallel=${CORES} --buffer-size=240G \
-| zstd -z -# 10 -T ${CORES} - -o ${OUTPUT}
+| zstd -z -10 -T${CORES} -f - -o ${OUTPUT}
 
 echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] prepare.slurm: all processing complete."
 exit 0;
