@@ -11,6 +11,7 @@
 
 set -x;
 
+CORES=${SLURM_CPUS_ON_NODE:-8};
 OELLM=/pfs/lustrep2/scratch/project_462000953/training/catalogue;
 
 if [ -z "${1}" ]; then
