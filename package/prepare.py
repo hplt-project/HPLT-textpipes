@@ -2,13 +2,10 @@
 
 # -*- coding: utf-8; -*-
 
+import argparse;
 import io;
-import glob;
-import gzip;
 import json;
-import multiprocessing as mp;
 import os;
-import re;
 import sys;
 import time;
 import zstandard as zstd;
@@ -26,9 +23,9 @@ def wds_prepend(path, key = "doc_scores"):
         n = 0;
         errors = [];
         for i, line in enumerate(stream):
-          print(line);
+          line = line.rstrip();
           try:
-            document = json.loads(line.rstrip());
+            document = json.loads(line);
             wds = document[key][0];
           except Exception as error:
             errors.append(i);
@@ -41,3 +38,14 @@ def wds_prepend(path, key = "doc_scores"):
   else:
     print(f"wds_prepend(): invalid input {path}.",
           file = sys.stderr);
+
+def main():
+
+  parser = argparse.ArgumentParser(description = "HPLT Stage 5: Sort and Package for Release");
+  parser.add_argument("input");
+  arguments = parser.parse_args();
+
+  wds_prepend(arguments.input);
+
+if __name__ == "__main__":
+  main();
