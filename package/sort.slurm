@@ -45,7 +45,7 @@ fi
 export LC_ALL=C;
 locale;
 
-python ${PACKAGE}/prepare.py ${file} \
+python ${PACKAGE}/prepare.py ${FILE} \
 | sort --temporary-directory=${FLASH}/${USER} \
     --numeric-sort --parallel=${CORES} --buffer-size=240G \
 | zstd -z -# 10 -T ${CORES} -o ${OUTPUT}
