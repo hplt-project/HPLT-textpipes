@@ -33,6 +33,7 @@ def wds_prepend(path, key = "doc_scores"):
                   file = sys.stderr);
             continue;
           print(f"{wds}\t{line}");
+          n += 1;
         print(f"{n} documents; {time.time() - start} seconds.",
               file = sys.stderr);
   else:
