@@ -7,7 +7,7 @@
 #SBATCH --mail-type=FAIL
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=32
-#SBATCH --mem-per-cpu=4064M
+#SBATCH --mem-per-cpu=4096M
 
 set -x;
 
@@ -22,7 +22,7 @@ if [ ! -f ${1} ]; then
   echo "prepare.slurm: invalid input file ${1}; exit." >&2;
   exit 1;
 fi
-FILE=$(realpath ${1});
+FILE=$(realpath --strip ${1});
 OUTPUT=${FILE%.zst}.s.zst;
 
 echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] prepare.slurm: root in $(pwd);"
@@ -48,8 +48,8 @@ locale;
 python ${PACKAGE}/prepare.py ${FILE} \
 | sort --temporary-directory=${FLASH}/${USER} \
     --key=1,1 --numeric-sort --reverse \
-    --parallel=${CORES} --buffer-size=128G \
-| zstd -z -10 -T${CORES} -f - -o ${OUTPUT}
+    --parallel=${CORES} --buffer-size=120G \
+| zstd --no-progress -z -10 -T${CORES} -f - -o ${OUTPUT}
 
 echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] prepare.slurm: all processing complete."
 exit 0;
