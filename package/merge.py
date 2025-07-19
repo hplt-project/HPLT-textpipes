@@ -11,23 +11,29 @@ import time;
 import zstandard as zstd;
 
 def parse(input, min, max):
-  line = next(input["stream"], None);
-  if line is None:
-    input["stream"].close();
-    return None, None;
-  input["n"] += 1;
-  try:
-    _ = line.find("\t");
-    key = float(line[:_]);
-    line = line[_ + 1:];
-  except Exception as error:
-    print("merge.py: aborting input from {file}, #{}: {error}"
-          "".format(input["file"], input["n"], error),
-          file = sys.stderr);
-    input["stream"].close();
-    return None, None;
-  input["line"] = line;
-  return key, input;
+  while True:
+    line = next(input["stream"], None);
+    if line is None:
+      input["stream"].close();
+      return None, None;
+    input["n"] += 1;
+    try:
+      _ = line.find("\t");
+      key = float(line[:_]);
+      line = line[_ + 1:];
+    except Exception as error:
+      print("merge.py: aborting input from {file}, #{}: {error}"
+            "".format(input["file"], input["n"], error),
+            file = sys.stderr);
+      input["stream"].close();
+      return None, None;
+    #
+    # skip documents whose WDS _key_ lies outside the [_min_, _max_[ range
+    #
+    if min is not None and key < min or max is not None and key >= max:
+      continue;
+    input["line"] = line;
+    return key, input;
     
 def main():
 
@@ -55,8 +61,7 @@ def main():
     if key is None: continue;
     inputs.append((key, input));
 
-  n = 0;
-  prefix = arguments.start;
+  n = o = 0;
   outputs = dict();
   while len(inputs):
     #
@@ -66,18 +71,29 @@ def main():
     key, input = inputs.pop();
     bin = int(key);
     #
-    # create one output file per bin, counting from _prefix_
+    # create one output file per _bin_, counting from the starting index
     #
     if bin not in outputs:
-      name = f"{prefix}_{bin}_jsonl.zst";
+      name = f"{arguments.start}_{bin}_jsonl.zst";
       compressor = zstd.ZstdCompressor(level = arguments.level);
       stream = compressor.stream_writer(open(name, "wb"));
       stream = io.TextIOWrapper(stream, encoding = "utf-8", errors = "replace");
-      outputs[bin] = {"file": name, "stream": stream};
+      outputs[bin] = {"file": name, "stream": stream, "i": arguments.start, "n": 0};
+      o += 1;
     #
     #
     #
-    outputs[bin]["stream"].write(input["line"]);
+    output = outputs[bin];
+    output["stream"].write(input["line"]);
+    output["n"] += 1;
+    if arguments.n is not None and output["n"] >= arguments.n:
+      output["stream"].close();
+      name = f"{output["i"] + 1}_{bin}_jsonl.zst";
+      compressor = zstd.ZstdCompressor(level = arguments.level);
+      stream = compressor.stream_writer(open(name, "wb"));
+      stream = io.TextIOWrapper(stream, encoding = "utf-8", errors = "replace");
+      outputs[bin] = {"file": name, "stream": stream, "i": output["i"] + 1, "n": 0};
+      o += 1;
     n += 1;
     #
     # 
@@ -87,7 +103,7 @@ def main():
     else: inputs.append((key, input));
   for output in outputs.values(): output["stream"].close();
   print("merge.py: {} documents; {} inputs; {} outputs; {} seconds."
-        "".format(n, len(arguments.inputs), len(outputs), time.time() - start),
+        "".format(n, len(arguments.inputs), o, time.time() - start),
         file = sys.stderr);
 
 if __name__ == "__main__":
