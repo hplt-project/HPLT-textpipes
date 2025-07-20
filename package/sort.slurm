@@ -35,7 +35,7 @@ module reset;
 module load cray-python;
 source ${OELLM}/python/bin/activate;
 
-PACKAGE=/pfs/lustrep4/projappl/project_462000827/oe/textpipes/package;
+PACKAGE=/scratch/project_462000827/oe/textpipes/package;
 FLASH=/flash/project_462000827;
 
 if [ ! -d ${FLASH}/${USER} ]; then
@@ -49,7 +49,7 @@ python ${PACKAGE}/prepare.py ${FILE} \
 | sort --temporary-directory=${FLASH}/${USER} \
     --key=1,1 --numeric-sort --reverse \
     --parallel=${CORES} --buffer-size=120G \
-| zstd --no-progress -z -10 -T${CORES} -f - -o ${OUTPUT}
+| zstd --verbose --no-progress -z -10 -T${CORES} -f - -o ${OUTPUT}
 
 echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] prepare.slurm: all processing complete."
 exit 0;
