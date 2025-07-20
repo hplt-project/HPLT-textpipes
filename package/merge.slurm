@@ -32,7 +32,7 @@ source ${OELLM}/python/bin/activate;
 
 PACKAGE=/scratch/project_462000827/oe/textpipes/package;
 cd ${PACKAGE};
-python ${PACKAGE}/merge.py ${@};
+python ${PACKAGE}/merge.py --n $[32 * 1024 * 1024] ${@};
 
 echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] merge.slurm: all processing complete."
 exit 0;
