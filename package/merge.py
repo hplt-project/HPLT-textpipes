@@ -41,9 +41,10 @@ def main():
 
   parser = argparse.ArgumentParser(description = "HPLT Stage 5: Sort and Package for Release");
   parser.add_argument("--level", type = int, default = 10);
+  parser.add_argument("--cores", type = int, default = 8);
   parser.add_argument("--start", type = int, default = 1);
-  parser.add_argument("--max", type = int);
   parser.add_argument("--min", type = int);
+  parser.add_argument("--max", type = int);
   parser.add_argument("--n", type = int);
   parser.add_argument("inputs", nargs = "*");
   arguments = parser.parse_args();
@@ -75,7 +76,8 @@ def main():
     #
     if bin not in outputs:
       name = f"{arguments.start}_{bin}_jsonl.zst";
-      compressor = zstd.ZstdCompressor(level = arguments.level);
+      compressor = zstd.ZstdCompressor(level = arguments.level,
+                                       threads = arguments.cores);
       stream = compressor.stream_writer(open(name, "wb"));
       stream = io.TextIOWrapper(stream, encoding = "utf-8", errors = "replace");
       outputs[bin] = {"file": name, "stream": stream, "i": arguments.start, "n": 0};
