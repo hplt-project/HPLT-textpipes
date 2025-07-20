@@ -3,6 +3,7 @@
 # -*- coding: utf-8; -*-
 
 import argparse;
+import glob;
 import io;
 from operator import itemgetter;
 import os;
@@ -40,6 +41,7 @@ def main():
   start = time.time();
 
   parser = argparse.ArgumentParser(description = "HPLT Stage 5: Sort and Package for Release");
+  parser.add_argument("--suffix", type = str, default = ".s.zst");
   parser.add_argument("--level", type = int, default = 10);
   parser.add_argument("--cores", type = int, default = 8);
   parser.add_argument("--start", type = int, default = 1);
@@ -50,10 +52,19 @@ def main():
   arguments = parser.parse_args();
 
   #
-  # open all input files and scan the first line
+  # open all input files and scan their first line(s)
   #
+  files = [];
+  for path in arguments.inputs:
+    if os.path.isdir(path):
+      files.extend(glob.glob(os.path.join(path, "*" + arguments.suffix)));
+    elif path.endswith(arguments.suffix) and os.path.isfile(path):
+      files.append(path);
+    else:
+      print(f"merge.py: ignoring invalid path {path}",
+            file = sys.stderr);
   inputs = [];
-  for file in arguments.inputs:
+  for file in files:
     decompressor = zstd.ZstdDecompressor();
     stream = decompressor.stream_reader(open(file, "rb"));
     stream = io.TextIOWrapper(stream, encoding = "utf-8", errors = "replace");
@@ -109,7 +120,7 @@ def main():
     else: inputs.append((key, input));
   for output in outputs.values(): output["stream"].close();
   print("merge.py: {} documents; {} inputs; {} outputs; {} seconds."
-        "".format(n, len(arguments.inputs), o, time.time() - start),
+        "".format(n, len(files), o, time.time() - start),
         file = sys.stderr);
 
 if __name__ == "__main__":
