@@ -63,6 +63,7 @@ def main():
     else:
       print(f"merge.py: ignoring invalid path {path}",
             file = sys.stderr);
+  print("merge.py: reading {len(files)} inputs");
   inputs = [];
   for file in files:
     decompressor = zstd.ZstdDecompressor();
@@ -120,8 +121,7 @@ def main():
     else: inputs.append((key, input));
   for output in outputs.values(): output["stream"].close();
   print("merge.py: {} documents; {} inputs; {} outputs; {} seconds."
-        "".format(n, len(files), o, time.time() - start),
-        file = sys.stderr);
+        "".format(n, len(files), o, time.time() - start));
 
 if __name__ == "__main__":
   main();
