@@ -105,7 +105,7 @@ def main():
     #
     if arguments.n is not None and output["n"] >= arguments.n:
       output["stream"].close();
-      name = f"{output["i"] + 1}_{bin}_jsonl.zst";
+      name = "{}_{}_jsonl.zst".format(bin, output["i"] + 1);
       compressor = zstd.ZstdCompressor(level = arguments.level);
       stream = compressor.stream_writer(open(name, "wb"));
       stream = io.TextIOWrapper(stream, encoding = "utf-8", errors = "replace");
