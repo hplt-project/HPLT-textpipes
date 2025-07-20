@@ -23,7 +23,7 @@ def parse(input, min, max):
       key = float(line[:_]);
       line = line[_ + 1:];
     except Exception as error:
-      print("merge.py: aborting input from {file}, #{}: {error}"
+      print("merge.py: aborting input from {file}, #{}: {error}."
             "".format(input["file"], input["n"], error),
             file = sys.stderr);
       input["stream"].close();
@@ -61,9 +61,9 @@ def main():
     elif path.endswith(arguments.suffix) and os.path.isfile(path):
       files.append(path);
     else:
-      print(f"merge.py: ignoring invalid path {path}",
+      print(f"merge.py: ignoring invalid path {path}.",
             file = sys.stderr);
-  print("merge.py: reading {len(files)} inputs");
+  print(f"merge.py: reading {len(files)} inputs.");
   inputs = [];
   for file in files:
     decompressor = zstd.ZstdDecompressor();
