@@ -1,5 +1,9 @@
 #!/bin/bash
 
+#
+# for i in eng_Latn/*.jsonl.zst; do echo sbatch sort.slurm $(realpath --strip $i); done > eng.trickle
+#
+
 #SBATCH --job-name=prepare
 #SBATCH --partition=small
 #SBATCH --account=project_462000131
