@@ -194,21 +194,27 @@ def handle_list(elem, depth=0):
 
     result = []
     list_type = elem.get("rend", "ul")
+    item_count = 1
 
-    for i, child in enumerate(elem):
-        if child.tag != "item":
-            raise ConversionError(f"Unexpected element '{child.tag}' in list, expected 'item'")
+    for child in elem:
+        if child.tag == "item":
+            item_content = handle_item(child, depth)
+            if item_content:
+                indent = "  " * depth
+                if list_type == "ol":
+                    result.append(f"{indent}{item_count}. {item_content[0]}")
+                    item_count += 1
+                else:
+                    result.append(f"{indent}- {item_content[0]}")
 
-        item_content = handle_item(child, depth)
-        if item_content:
-            indent = "  " * depth
-            if list_type == "ol":
-                result.append(f"{indent}{i+1}. {item_content[0]}")
-            else:
-                result.append(f"{indent}- {item_content[0]}")
-
-            for line in item_content[1:]:
-                result.append(f"{indent}  {line}")
+                for line in item_content[1:]:
+                    result.append(f"{indent}  {line}")
+        elif child.tag == "list":
+            # Handle nested lists directly within the parent list
+            nested_list = handle_list(child, depth + 1)
+            result.extend(nested_list)
+        else:
+            raise ConversionError(f"Unexpected element '{child.tag}' in list, expected 'item' or 'list'")
 
     return result
 
@@ -221,6 +227,7 @@ def handle_item(elem, depth=0):
 
     for child in elem:
         if child.tag == "list":
+            # Handle nested lists within items
             nested_list = handle_list(child, depth + 1)
             result.extend(nested_list)
         else:
