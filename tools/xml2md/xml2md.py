@@ -106,9 +106,16 @@ def handle_p(elem):
 
 def handle_div(elem):
     result = []
+
+    if elem.text and elem.text.strip():
+        result.append(elem.text.strip())
+
     for i, child in enumerate(elem):
         child_result = process_element(child)
         result.extend(child_result)
+
+        if child.tail and child.tail.strip():
+            result.append(child.tail.strip())
 
         # Add line break after block elements (except for the last element)
         if i < len(elem) - 1 and child.tag in ["p", "head", "list", "code", "quote", "table"]:
@@ -359,6 +366,9 @@ def xml_to_markdown(xml_string):
     if main_elem is None:
         raise ConversionError("No main element found in XML", ConversionError.HIGH)
 
+    if not main_elem.text and len(main_elem) == 0:
+        raise ConversionError("Main element is empty", ConversionError.LOW)
+
     return process_element(main_elem)
 
 
@@ -370,7 +380,7 @@ def process_single(item, line_num=None):
 
     try:
         if "x" not in item:
-            raise ConversionError("No 'x' field in item, skipping conversion", ConversionError.CRITICAL)
+            raise ConversionError("No 'x' field in item, skipping conversion", ConversionError.MEDIUM)
 
         markdown_content = xml_to_markdown(item["x"])
         if markdown_content:
