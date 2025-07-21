@@ -395,7 +395,10 @@ def process_single(item, line_num=None):
             raise ConversionError("No markdown content generated", ConversionError.CRITICAL)
 
     except ET.ParseError as e:
-        raise ConversionError(f"Malformed XML content: {e}", ConversionError.HIGH)
+        # Convert XML parse errors to ConversionError and let the handler below deal with it
+        error = ConversionError(f"Malformed XML content: {e}", ConversionError.HIGH)
+        if error.severity <= VERBOSITY_LEVEL:
+            print(f"{line_prefix}Conversion error: {error}", file=sys.stderr)
 
     except ConversionError as e:
         # Only print errors with severity <= verbosity level
