@@ -383,7 +383,11 @@ def process_single(item, line_num=None):
         if XML_FIELD_NAME not in item:
             raise ConversionError(f"No '{XML_FIELD_NAME}' field in item, skipping conversion", ConversionError.MEDIUM)
 
-        markdown_content = xml_to_markdown(item[XML_FIELD_NAME])
+        xml_content = item[XML_FIELD_NAME]
+        if xml_content is None:
+            raise ConversionError(f"'{XML_FIELD_NAME}' field is null, skipping conversion", ConversionError.MEDIUM)
+
+        markdown_content = xml_to_markdown(xml_content)
         if markdown_content:
             item["md"] = "\n".join(markdown_content)
             SUCCESSFUL_CONVERSIONS += 1
