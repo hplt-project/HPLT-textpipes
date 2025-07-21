@@ -106,7 +106,8 @@ def main():
     if arguments.n is not None and output["n"] >= arguments.n:
       output["stream"].close();
       name = "{}_{}_jsonl.zst".format(bin, output["i"] + 1);
-      compressor = zstd.ZstdCompressor(level = arguments.level);
+      compressor = zstd.ZstdCompressor(level = arguments.level,
+                                       threads = arguments.cores);
       stream = compressor.stream_writer(open(name, "wb"));
       stream = io.TextIOWrapper(stream, encoding = "utf-8", errors = "replace");
       outputs[bin] = {"file": name, "stream": stream, "i": output["i"] + 1, "n": 0};
