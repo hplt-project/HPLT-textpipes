@@ -87,7 +87,7 @@ def main():
     # create one output file per _bin_, counting from the starting index
     #
     if bin not in outputs:
-      name = f"{bin}_{arguments.start}_jsonl.zst";
+      name = f"{bin}_{arguments.start}.jsonl.zst";
       compressor = zstd.ZstdCompressor(level = arguments.level,
                                        threads = arguments.cores);
       stream = compressor.stream_writer(open(name, "wb"));
@@ -105,7 +105,7 @@ def main():
     #
     if arguments.n is not None and output["n"] >= arguments.n:
       output["stream"].close();
-      name = "{}_{}_jsonl.zst".format(bin, output["i"] + 1);
+      name = "{}_{}.jsonl.zst".format(bin, output["i"] + 1);
       compressor = zstd.ZstdCompressor(level = arguments.level,
                                        threads = arguments.cores);
       stream = compressor.stream_writer(open(name, "wb"));
