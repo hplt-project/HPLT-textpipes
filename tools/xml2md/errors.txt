@@ -1,0 +1,216 @@
+ 391601  Table does not have a header
+ 160170  Row elements with span/colspan attributes are not supported
+   6748  Nested tables are not supported
+   2114  Cell elements with span/colspan attributes are not supported
+   1983  No handler for element: th
+   1773  No handler for element: td
+   1647  Table element has no rows
+   1619  Main element is empty
+   1580  No handler for element: center
+    866  Row element has no cells
+    817  No handler for element: h1
+    804  'xml' field is null, skipping conversion
+    417  No handler for element: b
+    379  No handler for element: a
+    316  No 'xml' field in item, skipping conversion
+    297  Unexpected element 'cell' in table, expected 'row'
+    270  Unexpected element 'tr' in table, expected 'row'
+    256  No handler for element: ul
+    251  No handler for element: span
+    235  No handler for element: strong
+    230  No handler for element: article
+    213  No handler for element: tr
+    203  Unexpected element 'hi' in list, expected 'item' or 'list'
+    179  List nesting depth exceeded maximum of 5
+    150  No handler for element: br
+    148  No handler for element: section
+    141  Unexpected element 'p' in list, expected 'item' or 'list'
+    133  No handler for element: tbody
+    128  Unexpected element 'div' in list, expected 'item' or 'list'
+    126  No handler for element: h2
+    117  No handler for element: fieldset
+    104  No handler for element: text
+     97  No handler for element: h3
+     94  No handler for element: nobr
+     90  Unexpected element 'head' in list, expected 'item' or 'list'
+     86  No handler for element: i
+     78  No handler for element: noscript
+     72  Unexpected element 'hi' in table, expected 'row'
+     72  Unexpected element 'lb' in list, expected 'item' or 'list'
+     71  No handler for element: wbr
+     61  No handler for element: select
+     57  No handler for element: label
+     54  No handler for element: li
+     50  No handler for element: xml-fragment
+     37  No handler for element: aside
+     35  No handler for element: include
+     32  No handler for element: caption
+     28  No handler for element: el
+     25  No handler for element: hr
+     25  No handler for element: value
+     23  No handler for element: {http://www.w3.org/1999/xhtml}list
+     21  No markdown content generated
+     16  No handler for element: title
+     13  No handler for element: iframe
+     12  No handler for element: nav
+     12  No handler for element: ss
+     12  No handler for element: superscript
+     11  No handler for element: object
+     10  No handler for element: font
+     10  Unexpected element 'div' in table, expected 'row'
+      9  No handler for element: {htmlPassivePage}list
+      9  Unexpected element 'p' in table, expected 'row'
+      8  No handler for element: header_text
+      7  No handler for element: dl
+      6  No handler for element: found
+      6  No handler for element: map
+      6  Unexpected element 'quote' in list, expected 'item' or 'list'
+      6  Unexpected element 'table' in list, expected 'item' or 'list'
+      5  No handler for element: button
+      5  No handler for element: cufon
+      5  No handler for element: h
+      5  No handler for element: lng
+      5  Unexpected element 'head' in row, expected 'cell'
+      5  Unexpected element 'lb' in table, expected 'row'
+      5  Unexpected element 'tbody' in table, expected 'row'
+      4  No handler for element: a...
+      4  No handler for element: buxus-link
+      4  No handler for element: class
+      4  No handler for element: f
+      4  No handler for element: punct
+      4  No handler for element: small
+      3  No handler for element: break
+      3  No handler for element: footer
+      3  No handler for element: h7
+      3  No handler for element: hypolites
+      3  No handler for element: odkaz
+      3  No handler for element: para
+      3  No handler for element: produkt
+      3  No handler for element: s
+      3  No handler for element: t
+      3  Unexpected element 'head' in table, expected 'row'
+      3  Unexpected element 'thead' in table, expected 'row'
+      2  Malformed XML content: not well-formed (invalid token): line 3625, column 13
+      2  No handler for element: aaa
+      2  No handler for element: ahref
+      2  No handler for element: b...
+      2  No handler for element: buxus-image
+      2  No handler for element: date
+      2  No handler for element: dd
+      2  No handler for element: g
+      2  No handler for element: h4
+      2  No handler for element: h5
+      2  No handler for element: header
+      2  No handler for element: il
+      2  No handler for element: lingea0a1073
+      2  No handler for element: metricconverter
+      2  No handler for element: n
+      2  No handler for element: none
+      2  No handler for element: o
+      2  No handler for element: search-title
+      2  No handler for element: sn53370
+      2  No handler for element: strike
+      2  No handler for element: string
+      2  No handler for element: summary
+      2  No handler for element: topic
+      2  No handler for element: url
+      2  No handler for element: v
+      2  Unexpected element 'p' in row, expected 'cell'
+      2  Unexpected element 'row' in list, expected 'item' or 'list'
+      1  Malformed XML content: not well-formed (invalid token): line 985, column 13
+      1  No handler for element: abbrev
+      1  No handler for element: align
+      1  No handler for element: barva2
+      1  No handler for element: batchcount
+      1  No handler for element: bb
+      1  No handler for element: bigger
+      1  No handler for element: bila
+      1  No handler for element: blah
+      1  No handler for element: blockcode
+      1  No handler for element: blockqoute
+      1  No handler for element: blocquote
+      1  No handler for element: bold
+      1  No handler for element: b.p
+      1  No handler for element: b.st
+      1  No handler for element: bt
+      1  No handler for element: citation
+      1  No handler for element: cite
+      1  No handler for element: country
+      1  No handler for element: cufontext
+      1  No handler for element: cz
+      1  No handler for element: description
+      1  No handler for element: disc
+      1  No handler for element: dt
+      1  No handler for element: e
+      1  No handler for element: em
+      1  No handler for element: embed
+      1  No handler for element: en
+      1  No handler for element: eof
+      1  No handler for element: figure
+      1  No handler for element: fixn
+      1  No handler for element: galerie
+      1  No handler for element: green
+      1  No handler for element: h23
+      1  No handler for element: h8
+      1  No handler for element: hgroup
+      1  No handler for element: hh4
+      1  No handler for element: hp
+      1  No handler for element: hx
+      1  No handler for element: ikona
+      1  No handler for element: im
+      1  No handler for element: img
+      1  No handler for element: imus
+      1  No handler for element: ip
+      1  No handler for element: it
+      1  No handler for element: italics
+      1  No handler for element: j-a
+      1  No handler for element: j.holoubek
+      1  No handler for element: kategorie
+      1  No handler for element: komu
+      1  No handler for element: kontaktn
+      1  No handler for element: l
+      1  No handler for element: l3
+      1  No handler for element: last
+      1  No handler for element: lcd
+      1  No handler for element: left
+      1  No handler for element: light
+      1  No handler for element: linux-return-x-y
+      1  No handler for element: mi
+      1  No handler for element: mv
+      1  No handler for element: nazev
+      1  No handler for element: nbsp
+      1  No handler for element: ndex.php
+      1  No handler for element: normal
+      1  No handler for element: ol
+      1  No handler for element: person
+      1  No handler for element: personname
+      1  No handler for element: pr
+      1  No handler for element: property
+      1  No handler for element: pstyle
+      1  No handler for element: ptitle
+      1  No handler for element: qth
+      1  No handler for element: r
+      1  No handler for element: record
+      1  No handler for element: span...
+      1  No handler for element: spanstyle
+      1  No handler for element: st
+      1  No handler for element: stdio.h
+      1  No handler for element: stong
+      1  No handler for element: storng
+      1  No handler for element: stoupac
+      1  No handler for element: stron
+      1  No handler for element: subsection
+      1  No handler for element: sup
+      1  No handler for element: sup11
+      1  No handler for element: tag
+      1  No handler for element: theme
+      1  No handler for element: tim
+      1  No handler for element: titulek
+      1  No handler for element: translate
+      1  No handler for element: verbatim
+      1  No handler for element: vy
+      1  No handler for element: x
+      1  No handler for element: xml
+      1  No handler for element: y
+      1  Unexpected element 'hi' in row, expected 'cell'
+      1  Unexpected element 'lb' in row, expected 'cell'
