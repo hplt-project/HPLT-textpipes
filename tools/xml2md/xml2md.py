@@ -167,7 +167,7 @@ def handle_inline_formatting(elem):
         return []
 
     if elem.tag == "hi":
-        rend = elem.get("rend", "")
+        rend = elem.get("rend", "#i")  # Default to italic if no rend attribute
         if rend == "#b":
             return [f"**{text}**"]
         elif rend == "#i":
@@ -181,7 +181,7 @@ def handle_inline_formatting(elem):
         elif rend == "#sub":
             return [f"<sub>{text}</sub>"]
         else:
-            raise ConversionError(f"Unknown or missing rend attribute for hi element: '{rend}'")
+            raise ConversionError(f"Unknown rend attribute for hi element: '{rend}'")
     elif elem.tag == "del":
         return [f"~~{text}~~"]
     else:
