@@ -4,10 +4,11 @@ import argparse
 import sys
 import jsonlines
 import xml.etree.ElementTree as ET
-import re
 
 MAX_LIST_DEPTH = 5
-VERBOSITY_LEVEL = 1  # Default: only show critical errors
+VERBOSITY_LEVEL = 2
+TOTAL_LINES = 0
+SUCCESSFUL_CONVERSIONS = 0
 
 
 class ConversionError(Exception):
@@ -352,38 +353,39 @@ def process_element(elem, inline_context=False):
         return handler(elem)
 
 
-def xml_to_markdown(xml_string, line_num=None):
-    try:
-        root = ET.fromstring(xml_string)
-        main_elem = root.find(".//main")
-        if main_elem is None:
-            line_prefix = f"Line {line_num}: " if line_num else ""
-            print(f"{line_prefix}No main element found in XML", file=sys.stderr)
-            return None
+def xml_to_markdown(xml_string):
+    root = ET.fromstring(xml_string)
+    main_elem = root.find(".//main")
+    if main_elem is None:
+        raise ConversionError("No main element found in XML", ConversionError.HIGH)
 
-        return process_element(main_elem)
-
-    except ET.ParseError as e:
-        line_prefix = f"Line {line_num}: " if line_num else ""
-        print(f"{line_prefix}Malformed XML content: {e}", file=sys.stderr)
-        return None
-
-    except ConversionError as e:
-        line_prefix = f"Line {line_num}: " if line_num else ""
-        # Only print errors with severity <= verbosity level
-        if e.severity <= VERBOSITY_LEVEL:
-            print(f"{line_prefix}Conversion error: {e}", file=sys.stderr)
-        return None
+    return process_element(main_elem)
 
 
 def process_single(item, line_num=None):
-    if "x" not in item:
-        return item
+    global TOTAL_LINES, SUCCESSFUL_CONVERSIONS
 
-    markdown_content = xml_to_markdown(item["x"], line_num)
+    TOTAL_LINES += 1
+    line_prefix = f"Line {line_num}: " if line_num else ""
 
-    if markdown_content:
-        item["md"] = "\n".join(markdown_content)
+    try:
+        if "x" not in item:
+            raise ConversionError("No 'x' field in item, skipping conversion", ConversionError.CRITICAL)
+
+        markdown_content = xml_to_markdown(item["x"])
+        if markdown_content:
+            item["md"] = "\n".join(markdown_content)
+            SUCCESSFUL_CONVERSIONS += 1
+        else:
+            raise ConversionError("No markdown content generated", ConversionError.CRITICAL)
+
+    except ET.ParseError as e:
+        raise ConversionError(f"Malformed XML content: {e}", ConversionError.HIGH)
+
+    except ConversionError as e:
+        # Only print errors with severity <= verbosity level
+        if e.severity <= VERBOSITY_LEVEL:
+            print(f"{line_prefix}Conversion error: {e}", file=sys.stderr)
 
     return item
 
@@ -397,6 +399,8 @@ def process_buffer(buffer, start_line_num):
 
 
 def main(buffer_size=1000):
+    global TOTAL_LINES, SUCCESSFUL_CONVERSIONS
+
     with (jsonlines.Reader(sys.stdin) as reader,
           jsonlines.Writer(sys.stdout) as writer):
 
@@ -421,13 +425,16 @@ def main(buffer_size=1000):
             for item in processed:
                 writer.write(item)
 
+    if VERBOSITY_LEVEL >= ConversionError.CRITICAL:
+        print(f"Conversion complete: {SUCCESSFUL_CONVERSIONS}/{TOTAL_LINES} lines successfully converted", file=sys.stderr)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Convert trafilatura XML output to markdown")
     parser.add_argument("--buffer-size", type=int, default=1000, help="Buffer size for processing lines")
     parser.add_argument("--max-list-depth", type=int, default=5, help="Maximum nesting depth for lists")
     parser.add_argument("--verbosity", "-v", type=int, default=2,
-                       help="Verbosity level (1=critical only, 2=high+, 3=medium+, 4=all errors)")
+                       help="Verbosity level (0=quiet, 1=critical only, 2=high+, 3=medium+, 4=all errors)")
     args = parser.parse_args()
 
     MAX_LIST_DEPTH = args.max_list_depth
