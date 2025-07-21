@@ -7,11 +7,21 @@ import xml.etree.ElementTree as ET
 import re
 
 MAX_LIST_DEPTH = 5
+VERBOSITY_LEVEL = 1  # Default: only show critical errors
 
 
 class ConversionError(Exception):
-    """Custom exception for conversion errors."""
-    pass
+    """Custom exception for conversion errors with severity levels."""
+
+    # Severity levels (lower number = higher severity = more important)
+    CRITICAL = 1    # Reserved for most critical errors
+    HIGH = 2        # No handler errors, structure/parsing errors
+    MEDIUM = 3      # Content validation errors
+    LOW = 4         # Table-related errors - least important
+
+    def __init__(self, message, severity=HIGH):
+        super().__init__(message)
+        self.severity = severity
 
 
 HANDLERS = {
@@ -155,7 +165,7 @@ def handle_quote(elem):
 
 def handle_table(elem):
     if elem.find(".//table") is not None:
-        raise ConversionError("Nested tables are not supported")
+        raise ConversionError("Nested tables are not supported", ConversionError.LOW)
 
     rows = []
     first_row_checked = False
@@ -165,17 +175,17 @@ def handle_table(elem):
             # Check if the first row has header cells
             if not first_row_checked:
                 if not any(cell.get("role") == "head" for cell in child.findall("cell")):
-                    raise ConversionError("Table does not have a header")
+                    raise ConversionError("Table does not have a header", ConversionError.LOW)
                 first_row_checked = True
 
             row_data = handle_row(child)
             if row_data:
                 rows.append(row_data)
         else:
-            raise ConversionError(f"Unexpected element '{child.tag}' in table, expected 'row'")
+            raise ConversionError(f"Unexpected element '{child.tag}' in table, expected 'row'", ConversionError.LOW)
 
     if not rows:
-        raise ConversionError("Table element has no rows")
+        raise ConversionError("Table element has no rows", ConversionError.LOW)
 
     result = []
     result.append("| " + " | ".join(rows[0]) + " |")
@@ -191,7 +201,7 @@ def handle_table(elem):
 
 def handle_row(elem):
     if elem.get("span") or elem.get("colspan"):
-        raise ConversionError("Row elements with span/colspan attributes are not supported")
+        raise ConversionError("Row elements with span/colspan attributes are not supported", ConversionError.LOW)
 
     cells = []
     for child in elem:
@@ -202,17 +212,17 @@ def handle_row(elem):
             else:
                 cells.append("")
         else:
-            raise ConversionError(f"Unexpected element '{child.tag}' in row, expected 'cell'")
+            raise ConversionError(f"Unexpected element '{child.tag}' in row, expected 'cell'", ConversionError.LOW)
 
     if not cells:
-        raise ConversionError("Row element has no cells")
+        raise ConversionError("Row element has no cells", ConversionError.LOW)
 
     return cells
 
 
 def handle_cell(elem):
     if elem.get("span") or elem.get("colspan"):
-        raise ConversionError("Cell elements with span/colspan attributes are not supported")
+        raise ConversionError("Cell elements with span/colspan attributes are not supported", ConversionError.LOW)
 
     result = []
     if elem.text:
@@ -264,16 +274,16 @@ def handle_inline_formatting(elem):
         elif rend == "#sub":
             return [f"<sub>{text}</sub>"]
         else:
-            raise ConversionError(f"Unknown rend attribute for hi element: '{rend}'")
+            raise ConversionError(f"Unknown rend attribute for hi element: '{rend}'", ConversionError.MEDIUM)
     elif elem.tag == "del":
         return [f"~~{text}~~"]
     else:
-        raise ConversionError(f"Unsupported inline formatting element: {elem.tag}")
+        raise ConversionError(f"Unsupported inline formatting element: {elem.tag}", ConversionError.MEDIUM)
 
 
 def handle_list(elem, depth=0):
     if depth >= MAX_LIST_DEPTH:
-        raise ConversionError(f"List nesting depth exceeded maximum of {MAX_LIST_DEPTH}")
+        raise ConversionError(f"List nesting depth exceeded maximum of {MAX_LIST_DEPTH}", ConversionError.MEDIUM)
 
     result = []
     list_type = elem.get("rend", "ul")
@@ -297,7 +307,7 @@ def handle_list(elem, depth=0):
             nested_list = handle_list(child, depth + 1)
             result.extend(nested_list)
         else:
-            raise ConversionError(f"Unexpected element '{child.tag}' in list, expected 'item' or 'list'")
+            raise ConversionError(f"Unexpected element '{child.tag}' in list, expected 'item' or 'list'", ConversionError.MEDIUM)
 
     return result
 
@@ -331,7 +341,7 @@ def handle_item(elem, depth=0):
 
 def process_element(elem, inline_context=False):
     if elem.tag not in HANDLERS:
-        raise ConversionError(f"No handler for element: {elem.tag}")
+        raise ConversionError(f"No handler for element: {elem.tag}", ConversionError.HIGH)
 
     handler = HANDLERS[elem.tag]
 
@@ -360,7 +370,9 @@ def xml_to_markdown(xml_string, line_num=None):
 
     except ConversionError as e:
         line_prefix = f"Line {line_num}: " if line_num else ""
-        print(f"{line_prefix}Conversion error: {e}", file=sys.stderr)
+        # Only print errors with severity <= verbosity level
+        if e.severity <= VERBOSITY_LEVEL:
+            print(f"{line_prefix}Conversion error: {e}", file=sys.stderr)
         return None
 
 
@@ -414,9 +426,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser("Convert trafilatura XML output to markdown")
     parser.add_argument("--buffer-size", type=int, default=1000, help="Buffer size for processing lines")
     parser.add_argument("--max-list-depth", type=int, default=5, help="Maximum nesting depth for lists")
+    parser.add_argument("--verbosity", "-v", type=int, default=2,
+                       help="Verbosity level (1=critical only, 2=high+, 3=medium+, 4=all errors)")
     args = parser.parse_args()
 
     MAX_LIST_DEPTH = args.max_list_depth
+    VERBOSITY_LEVEL = args.verbosity
 
     main(args.buffer_size)
 
