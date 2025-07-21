@@ -26,7 +26,10 @@ HANDLERS = {
     "hi": lambda elem: handle_inline_formatting(elem),
     "del": lambda elem: handle_inline_formatting(elem),
     "code": lambda elem: handle_code(elem),
-    "quote": lambda elem: handle_quote(elem)
+    "quote": lambda elem: handle_quote(elem),
+    "table": lambda elem: handle_table(elem),
+    "row": lambda elem: handle_row(elem),
+    "cell": lambda elem: handle_cell(elem)
 }
 
 
@@ -97,7 +100,7 @@ def handle_div(elem):
         result.extend(child_result)
 
         # Add line break after block elements (except for the last element)
-        if i < len(elem) - 1 and child.tag in ["p", "head", "list", "code", "quote"]:
+        if i < len(elem) - 1 and child.tag in ["p", "head", "list", "code", "quote", "table"]:
             result.append("")
 
     return result
@@ -148,6 +151,86 @@ def handle_quote(elem):
         return quoted_lines
     else:
         return []
+
+
+def handle_table(elem):
+    if elem.find(".//table") is not None:
+        raise ConversionError("Nested tables are not supported")
+
+    rows = []
+    first_row_checked = False
+
+    for child in elem:
+        if child.tag == "row":
+            # Check if the first row has header cells
+            if not first_row_checked:
+                if not any(cell.get("role") == "head" for cell in child.findall("cell")):
+                    raise ConversionError("Table does not have a header")
+                first_row_checked = True
+
+            row_data = handle_row(child)
+            if row_data:
+                rows.append(row_data)
+        else:
+            raise ConversionError(f"Unexpected element '{child.tag}' in table, expected 'row'")
+
+    if not rows:
+        raise ConversionError("Table element has no rows")
+
+    result = []
+    result.append("| " + " | ".join(rows[0]) + " |")
+    result.append("|" + "---|" * len(rows[0]))
+
+    for row_data in rows[1:]:
+        while len(row_data) < len(rows[0]):
+            row_data.append("")
+        result.append("| " + " | ".join(row_data[:len(rows[0])]) + " |")
+
+    return result
+
+
+def handle_row(elem):
+    if elem.get("span") or elem.get("colspan"):
+        raise ConversionError("Row elements with span/colspan attributes are not supported")
+
+    cells = []
+    for child in elem:
+        if child.tag == "cell":
+            cell_content = handle_cell(child)
+            if cell_content:
+                cells.append(cell_content[0] if cell_content else "")
+            else:
+                cells.append("")
+        else:
+            raise ConversionError(f"Unexpected element '{child.tag}' in row, expected 'cell'")
+
+    if not cells:
+        raise ConversionError("Row element has no cells")
+
+    return cells
+
+
+def handle_cell(elem):
+    if elem.get("span") or elem.get("colspan"):
+        raise ConversionError("Cell elements with span/colspan attributes are not supported")
+
+    result = []
+    if elem.text:
+        result.append(elem.text)
+
+    for child in elem:
+        child_content = process_element(child, inline_context=True)
+        result.extend(child_content)
+        if child.tail:
+            result.append(child.tail)
+
+    text = "".join(result).strip()
+    # Clean up text for table cell (remove newlines, normalize spaces)
+    text = " ".join(text.split())
+    if text:
+        return [text]
+    else:
+        return [""]
 
 
 def handle_inline_formatting(elem):
