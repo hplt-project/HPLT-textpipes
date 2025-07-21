@@ -7,6 +7,7 @@ import xml.etree.ElementTree as ET
 
 MAX_LIST_DEPTH = 5
 VERBOSITY_LEVEL = 2
+XML_FIELD_NAME = "x"
 TOTAL_LINES = 0
 SUCCESSFUL_CONVERSIONS = 0
 
@@ -379,10 +380,10 @@ def process_single(item, line_num=None):
     line_prefix = f"Line {line_num}: " if line_num else ""
 
     try:
-        if "x" not in item:
-            raise ConversionError("No 'x' field in item, skipping conversion", ConversionError.MEDIUM)
+        if XML_FIELD_NAME not in item:
+            raise ConversionError(f"No '{XML_FIELD_NAME}' field in item, skipping conversion", ConversionError.MEDIUM)
 
-        markdown_content = xml_to_markdown(item["x"])
+        markdown_content = xml_to_markdown(item[XML_FIELD_NAME])
         if markdown_content:
             item["md"] = "\n".join(markdown_content)
             SUCCESSFUL_CONVERSIONS += 1
@@ -443,12 +444,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser("Convert trafilatura XML output to markdown")
     parser.add_argument("--buffer-size", type=int, default=1000, help="Buffer size for processing lines")
     parser.add_argument("--max-list-depth", type=int, default=5, help="Maximum nesting depth for lists")
+    parser.add_argument("--xml-field", type=str, default="x", help="Name of the JSON field containing XML content (default: x)")
     parser.add_argument("--verbosity", "-v", type=int, default=2,
                        help="Verbosity level (0=quiet, 1=critical only, 2=high+, 3=medium+, 4=all errors)")
     args = parser.parse_args()
 
     MAX_LIST_DEPTH = args.max_list_depth
     VERBOSITY_LEVEL = args.verbosity
+    XML_FIELD_NAME = args.xml_field
 
     main(args.buffer_size)
 
