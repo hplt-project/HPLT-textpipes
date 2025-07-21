@@ -2,6 +2,8 @@
 
 #
 # for i in eng_Latn/*.jsonl.zst; do echo sbatch sort.slurm $(realpath --strip $i); done > eng.trickle
+# trickle --start --limit 180 eng.trickle
+# while true; do trickle --limit 180 eng.trickle; sleep 60; done
 #
 
 #SBATCH --job-name=prepare
