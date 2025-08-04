@@ -44,7 +44,7 @@ def main():
   start = time.time();
 
   parser = argparse.ArgumentParser(description = "HPLT Stage 5: Sort and Package for Release");
-  parser.add_argument("--suffix", type = str, default = ".s.zst");
+  parser.add_argument("--suffix", type = str, default = "jsonl.s.zst");
   parser.add_argument("--level", type = int, default = 10);
   parser.add_argument("--cores", type = int, default = 8);
   parser.add_argument("--start", type = int, default = 1);
