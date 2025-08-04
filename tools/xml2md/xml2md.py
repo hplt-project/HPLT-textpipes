@@ -41,7 +41,8 @@ HANDLERS = {
     "quote": lambda elem: handle_quote(elem),
     "table": lambda elem: handle_table(elem),
     "row": lambda elem: handle_row(elem),
-    "cell": lambda elem: handle_cell(elem)
+    "cell": lambda elem: handle_cell(elem),
+    "ref": lambda elem: handle_ref(elem)
 }
 
 
@@ -288,6 +289,30 @@ def handle_inline_formatting(elem):
         return [f"~~{text}~~"]
     else:
         raise ConversionError(f"Unsupported inline formatting element: {elem.tag}", ConversionError.MEDIUM)
+
+
+def handle_ref(elem):
+    result = []
+    if elem.text:
+        result.append(elem.text)
+
+    for child in elem:
+        child_content = process_element(child, inline_context=True)
+        result.extend(child_content)
+        if child.tail:
+            result.append(child.tail)
+
+    link_text = "".join(result).strip()
+    target = elem.get("target", "")
+
+    if not target:
+        raise ConversionError("ref element missing target attribute", ConversionError.MEDIUM)
+
+    if not link_text:
+        # If no text content, use the target as text
+        link_text = target
+
+    return [f"[{link_text}]({target})"]
 
 
 def handle_list(elem, depth=0):
