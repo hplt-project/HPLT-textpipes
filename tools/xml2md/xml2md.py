@@ -59,6 +59,38 @@ def extract_text_content(elem):
     return result
 
 
+def escape_markdown_text(text):
+    # Based on https://github.com/mattcone/markdown-guide/blob/master/_basic-syntax/escaping-characters.md
+
+    if not text:
+        return text
+
+    escapes = [
+        ('\\', '\\\\'), # backslash is the first to be escaped
+        ('`', '\\`'),
+        ('*', '\\*'),
+        ('_', '\\_'),
+        ('{', '\\{'),
+        ('}', '\\}'),
+        ('[', '\\['),
+        (']', '\\]'),
+        ('(', '\\('),
+        (')', '\\)'),
+        ('#', '\\#'),
+        ('+', '\\+'),
+        ('-', '\\-'),
+        ('.', '\\.'),
+        ('!', '\\!'),
+        ('|', '\\|'),
+    ]
+
+    result = text
+    for char, escaped in escapes:
+        result = result.replace(char, escaped)
+
+    return result
+
+
 def handle_head(elem):
     rend = elem.get("rend", "h3")
 
@@ -72,13 +104,13 @@ def handle_head(elem):
     # Process children with inline context for formatting
     result = []
     if elem.text:
-        result.append(elem.text)
+        result.append(escape_markdown_text(elem.text))
 
     for child in elem:
         child_content = process_element(child, inline_context=True)
         result.extend(child_content)
         if child.tail:
-            result.append(child.tail)
+            result.append(escape_markdown_text(child.tail))
 
     text = "".join(result).strip()
 
@@ -91,13 +123,13 @@ def handle_head(elem):
 def handle_p(elem):
     result = []
     if elem.text:
-        result.append(elem.text)
+        result.append(escape_markdown_text(elem.text))
 
     for child in elem:
         child_content = process_element(child, inline_context=True)
         result.extend(child_content)
         if child.tail:
-            result.append(child.tail)
+            result.append(escape_markdown_text(child.tail))
 
     text = "".join(result).strip()
     if text:
@@ -110,14 +142,14 @@ def handle_div(elem):
     result = []
 
     if elem.text and elem.text.strip():
-        result.append(elem.text.strip())
+        result.append(escape_markdown_text(elem.text.strip()))
 
     for i, child in enumerate(elem):
         child_result = process_element(child)
         result.extend(child_result)
 
         if child.tail and child.tail.strip():
-            result.append(child.tail.strip())
+            result.append(escape_markdown_text(child.tail.strip()))
 
         # Add line break after block elements (except for the last element)
         if i < len(elem) - 1 and child.tag in ["p", "head", "list", "code", "quote", "table"]:
@@ -155,13 +187,13 @@ def handle_quote(elem):
     """Handle blockquotes."""
     result = []
     if elem.text:
-        result.append(elem.text)
+        result.append(escape_markdown_text(elem.text))
 
     for child in elem:
         child_content = process_element(child, inline_context=True)
         result.extend(child_content)
         if child.tail:
-            result.append(child.tail)
+            result.append(escape_markdown_text(child.tail))
 
     text = "".join(result).strip()
     if text:
@@ -236,13 +268,13 @@ def handle_cell(elem):
 
     result = []
     if elem.text:
-        result.append(elem.text)
+        result.append(escape_markdown_text(elem.text))
 
     for child in elem:
         child_content = process_element(child, inline_context=True)
         result.extend(child_content)
         if child.tail:
-            result.append(child.tail)
+            result.append(escape_markdown_text(child.tail))
 
     text = "".join(result).strip()
     # Clean up text for table cell (remove newlines, normalize spaces)
@@ -256,13 +288,13 @@ def handle_cell(elem):
 def handle_inline_formatting(elem):
     result = []
     if elem.text:
-        result.append(elem.text)
+        result.append(escape_markdown_text(elem.text))
 
     for child in elem:
         child_content = process_element(child, inline_context=True)
         result.extend(child_content)
         if child.tail:
-            result.append(child.tail)
+            result.append(escape_markdown_text(child.tail))
 
     text = "".join(result).strip()
 
@@ -294,13 +326,13 @@ def handle_inline_formatting(elem):
 def handle_ref(elem):
     result = []
     if elem.text:
-        result.append(elem.text)
+        result.append(escape_markdown_text(elem.text))
 
     for child in elem:
         child_content = process_element(child, inline_context=True)
         result.extend(child_content)
         if child.tail:
-            result.append(child.tail)
+            result.append(escape_markdown_text(child.tail))
 
     link_text = "".join(result).strip()
     target = elem.get("target", "")
@@ -310,7 +342,7 @@ def handle_ref(elem):
 
     if not link_text:
         # If no text content, use the target as text
-        link_text = target
+        link_text = escape_markdown_text(target)
 
     return [f"[{link_text}]({target})"]
 
@@ -350,7 +382,7 @@ def handle_item(elem, depth=0):
     result = []
 
     if elem.text and elem.text.strip():
-        result.append(elem.text.strip())
+        result.append(escape_markdown_text(elem.text.strip()))
 
     for child in elem:
         if child.tag == "list":
@@ -362,13 +394,13 @@ def handle_item(elem, depth=0):
             result.extend(child_content)
 
         if child.tail and child.tail.strip():
-            result.append(child.tail.strip())
+            result.append(escape_markdown_text(child.tail.strip()))
 
     if not result:
         text_parts = extract_text_content(elem)
         text = "".join(text_parts).strip()
         if text:
-            result.append(text)
+            result.append(escape_markdown_text(text))
 
     return result
 
