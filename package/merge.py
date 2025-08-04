@@ -5,11 +5,14 @@
 import argparse;
 import glob;
 import io;
+import json;
 from operator import itemgetter;
 import os;
 import sys;
 import time;
 import zstandard as zstd;
+
+from xml2md import xml_to_markdown;
 
 def parse(input, min, max):
   while True:
@@ -23,7 +26,7 @@ def parse(input, min, max):
       key = float(line[:_]);
       line = line[_ + 1:];
     except Exception as error:
-      print("merge.py: aborting input from {file}, #{}: {error}."
+      print("merge.py: aborting input from {}, #{}: {error}."
             "".format(input["file"], input["n"], error),
             file = sys.stderr);
       input["stream"].close();
@@ -47,7 +50,9 @@ def main():
   parser.add_argument("--start", type = int, default = 1);
   parser.add_argument("--min", type = int);
   parser.add_argument("--max", type = int);
-  parser.add_argument("--n", type = int);
+  parser.add_argument("--size", type = int, default = 100 * 1024 ** 3);
+  parser.add_argument("--lines", type = int);
+  parser.add_argument("--target", default = ".");
   parser.add_argument("inputs", nargs = "*");
   arguments = parser.parse_args();
 
@@ -82,17 +87,34 @@ def main():
     # 
     inputs.sort(key = itemgetter(0));
     key, input = inputs.pop();
+#    document = md = None;
+#    try:
+#      document = json.loads(input["line"]);
+#    except Exception as error:
+#      print("merge.py: ignoring invalid JSON from {}, #{}: {}."
+#            "".format(input["file"], input["n"], error),
+#            file = sys.stderr);
+#    try:
+#      xml = document["xml"];
+#      md = xml_to_markdown(xml);
+#    except Exception as error:
+#      print("merge.py: MD failure from {}, #{}: {}."
+#            "".format(input["file"], input["n"], error),
+#            file = sys.stderr);
+#      document = None;
+    
     bin = int(key);
     #
     # create one output file per _bin_, counting from the starting index
     #
     if bin not in outputs:
-      name = f"{bin}_{arguments.start}.jsonl.zst";
+      name = os.path.join(arguments.target,
+                          f"{bin}_{arguments.start}.jsonl.zst");
       compressor = zstd.ZstdCompressor(level = arguments.level,
                                        threads = arguments.cores);
       stream = compressor.stream_writer(open(name, "wb"));
       stream = io.TextIOWrapper(stream, encoding = "utf-8", errors = "replace");
-      outputs[bin] = {"file": name, "stream": stream, "i": arguments.start, "n": 0};
+      outputs[bin] = {"file": name, "stream": stream, "i": arguments.start, "n": 0, "s": 0};
       o += 1;
     #
     # write the current document (sans the _key_ prefix) to its WDS bin
@@ -100,17 +122,20 @@ def main():
     output = outputs[bin];
     output["stream"].write(input["line"]);
     output["n"] += 1;
+    output["s"] += len(input["line"]);
     #
-    # advance to new output file after _arguments.n_ documents
+    # advance to new output file after _arguments.lines_ documents
     #
-    if arguments.n is not None and output["n"] >= arguments.n:
+    if (arguments.lines is not None and output["n"] >= arguments.lines
+        or arguments.size is not None and output["s"] >= arguments.size):
       output["stream"].close();
-      name = "{}_{}.jsonl.zst".format(bin, output["i"] + 1);
+      name = os.path.join(arguments.target,
+                          "{}_{}.jsonl.zst".format(bin, output["i"] + 1));
       compressor = zstd.ZstdCompressor(level = arguments.level,
                                        threads = arguments.cores);
       stream = compressor.stream_writer(open(name, "wb"));
       stream = io.TextIOWrapper(stream, encoding = "utf-8", errors = "replace");
-      outputs[bin] = {"file": name, "stream": stream, "i": output["i"] + 1, "n": 0};
+      outputs[bin] = {"file": name, "stream": stream, "i": output["i"] + 1, "n": 0, "s": 0};
       o += 1;
     n += 1;
     #
@@ -120,7 +145,12 @@ def main():
     key, input = parse(input, arguments.min, arguments.max);
     if key is None: continue;
     else: inputs.append((key, input));
-  for output in outputs.values(): output["stream"].close();
+  for output in outputs.values():
+    output["stream"].close();
+    if output["n"] == 0:
+      os.remove(output["file"]);
+      o -= 1;
+      
   print("merge.py: {} documents; {} inputs; {} outputs; {} seconds."
         "".format(n, len(files), o, time.time() - start));
 

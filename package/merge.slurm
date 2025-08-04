@@ -11,16 +11,27 @@
 
 set -x;
 
-CORES=${SLURM_CPUS_ON_NODE:-8};
-OELLM=/pfs/lustrep2/scratch/project_462000953/training/catalogue;
+if [ -z "${1}" -o ! -d "{$1}" ]; then
+  echo "merge.slurm: missing or invalid directory argument; exit." >&2;
+  exit 1;
+fi
+INPUT=$(realpath --strip ${1});
+TARGET=${INPUT%/*/*}/sorted/${INPUT##*/};
 
-if [ -z "${@}" ]; then
-  echo "merge.slurm: missing command line argument(s) (input(s)); exit." >&2;
+CORES=${SLURM_CPUS_ON_NODE:-8};
+
+PYTHON=/projappl/project_465001890/oe/python;
+if [ ! -f ${PYTHON}/bin/activate ]; then
+  echo "prepare.slurm: invalid Python environment ${PYTHON}; exit." >&2;
   exit 1;
 fi
 
+LC_ALL=C;
+locale;
+
 echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] merge.slurm: running in $(pwd);"
-echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] merge.slurm: processing: ${@};"
+echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] merge.slurm: processing: ${INPUT};"
+echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] merge.slurm: into: ${TARGET};"
 echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] merge.slurm: with ${CORES} cores."
 echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] merge.slurm: process environment:"
 env;
@@ -28,11 +39,11 @@ echo;
 
 module reset;
 module load cray-python;
-source ${OELLM}/python/bin/activate;
+source ${PYTHON}/python/bin/activate;
 
 PACKAGE=/scratch/project_462000827/oe/textpipes/package;
 cd ${PACKAGE};
-python ${PACKAGE}/merge.py --cores ${CORES} --n $[32 * 1024 * 1024] ${@};
+python ${PACKAGE}/merge.py --cores ${CORES} --size $[128 * 1024 ** 3] ${@};
 
 echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] merge.slurm: all processing complete."
 exit 0;
