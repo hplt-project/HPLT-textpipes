@@ -50,7 +50,7 @@ def main():
   parser.add_argument("--start", type = int, default = 1);
   parser.add_argument("--min", type = int);
   parser.add_argument("--max", type = int);
-  parser.add_argument("--size", type = int, default = 100 * 1024 ** 3);
+  parser.add_argument("--size", type = int, default = 128 * 1024 ** 3);
   parser.add_argument("--lines", type = int);
   parser.add_argument("--target", default = ".");
   parser.add_argument("inputs", nargs = "*");

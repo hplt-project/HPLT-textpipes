@@ -17,7 +17,6 @@ if [ -z "${1}" -o ! -d "${1}" ]; then
 fi
 INPUT=$(realpath --strip ${1});
 TARGET=${INPUT%/*/*}/sorted/${INPUT##*/};
-if [ ! -d "${TARGET}" ]; then mkdir -p ${TARGET}; fi
 if [ ! -d "${TARGET}" ]; then
   echo "merge.slurm: invalid target directory ${TARGET}; exit." >&2;
   exit 1;
