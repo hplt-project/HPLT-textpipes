@@ -84,6 +84,7 @@ def escape_markdown_text(text, context="inline"):
         result = re.sub(r'^(\s*)#', r'\1\\#', result, flags=re.MULTILINE)
         result = re.sub(r'^(\s*)\+(\s)', r'\1\\+\2', result, flags=re.MULTILINE)
         result = re.sub(r'^(\s*)-(\s)', r'\1\\-\2', result, flags=re.MULTILINE)
+        result = re.sub(r'^(\s*)(\d+)\.(\s)', r'\1\2\\.\3', result, flags=re.MULTILINE)
         #result = re.sub(r'^(\s*)\*(\s)', r'\1\\*\2', result, flags=re.MULTILINE)  # this is already escaped
         result = re.sub(r'^(\s*)>', r'\1\\>', result, flags=re.MULTILINE)
         result = re.sub(r'^([^:\n]+):', r'\1\\:', result, flags=re.MULTILINE)
