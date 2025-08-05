@@ -60,6 +60,22 @@ def extract_text_content(elem):
     return result
 
 
+def _apply_block_start_escaping(text):
+    # start of block/line - we need to be careful about headings (#), items (+, -, *), blockquotes (>), horizontal rules (---)
+    # maybe definitions (colon) in extended syntax
+
+    text = re.sub(r'^(\s*)#', r'\1\\#', text, flags=re.MULTILINE)
+    text = re.sub(r'^(\s*)\+(\s)', r'\1\\+\2', text, flags=re.MULTILINE)
+    text = re.sub(r'^(\s*)-(\s)', r'\1\\-\2', text, flags=re.MULTILINE)
+    text = re.sub(r'^(\s*)(\d+)\.(\s)', r'\1\2\\.\3', text, flags=re.MULTILINE)
+    #text = re.sub(r'^(\s*)\*(\s)', r'\1\\*\2', text, flags=re.MULTILINE)  # this is already escaped
+    text = re.sub(r'^(\s*)>', r'\1\\>', text, flags=re.MULTILINE)
+    text = re.sub(r'^([^:\n]+):', r'\1\\:', text, flags=re.MULTILINE)
+    text = re.sub(r'^(\s*)(-{3,}|\*{3,}|_{3,})(\s*)$', r'\1\\\2\3', text, flags=re.MULTILINE)
+
+    return text
+
+
 def escape_markdown_text(text, context="inline"):
     # context is either inline, block_start, table_cell, or link_text (not url)
 
@@ -78,17 +94,14 @@ def escape_markdown_text(text, context="inline"):
         result = result.replace(char, escaped)
 
     if context == "block_start":
-        # start of block - we need to be careful about headings (#), items (+, -, *), blockquotes (>), horizontal rules (---)
-        # maybe definitions (colon) in extended syntax
+        result = _apply_block_start_escaping(result)
 
-        result = re.sub(r'^(\s*)#', r'\1\\#', result, flags=re.MULTILINE)
-        result = re.sub(r'^(\s*)\+(\s)', r'\1\\+\2', result, flags=re.MULTILINE)
-        result = re.sub(r'^(\s*)-(\s)', r'\1\\-\2', result, flags=re.MULTILINE)
-        result = re.sub(r'^(\s*)(\d+)\.(\s)', r'\1\2\\.\3', result, flags=re.MULTILINE)
-        #result = re.sub(r'^(\s*)\*(\s)', r'\1\\*\2', result, flags=re.MULTILINE)  # this is already escaped
-        result = re.sub(r'^(\s*)>', r'\1\\>', result, flags=re.MULTILINE)
-        result = re.sub(r'^([^:\n]+):', r'\1\\:', result, flags=re.MULTILINE)
-        result = re.sub(r'^(\s*)(-{3,}|\*{3,}|_{3,})(\s*)$', r'\1\\\2\3', result, flags=re.MULTILINE)
+    if context == "inline":
+        # escape block-start patterns only if it contains multiple lines (we are not at the beginning of a markdown line now)
+        if '\n' in result:
+            first_line, rest = result.split('\n', 1)
+            escaped_rest = _apply_block_start_escaping(rest)
+            result = first_line + '\n' + escaped_rest
 
     if context == "table_cell":
         # escape pipes inside tables
