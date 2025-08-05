@@ -132,7 +132,7 @@ def handle_head(elem):
 def handle_p(elem):
     result = []
     if elem.text:
-        result.append(escape_markdown_text(elem.text))
+        result.append(escape_markdown_text(elem.text, context="block_start"))
 
     for child in elem:
         child_content = process_element(child, inline_context=True)
@@ -151,7 +151,7 @@ def handle_div(elem):
     result = []
 
     if elem.text and elem.text.strip():
-        result.append(escape_markdown_text(elem.text.strip()))
+        result.append(escape_markdown_text(elem.text.strip(), context="block_start"))
 
     for i, child in enumerate(elem):
         child_result = process_element(child)
@@ -196,7 +196,7 @@ def handle_quote(elem):
     """Handle blockquotes."""
     result = []
     if elem.text:
-        result.append(escape_markdown_text(elem.text))
+        result.append(escape_markdown_text(elem.text, context="block_start"))
 
     for child in elem:
         child_content = process_element(child, inline_context=True)
@@ -391,7 +391,7 @@ def handle_item(elem, depth=0):
     result = []
 
     if elem.text and elem.text.strip():
-        result.append(escape_markdown_text(elem.text.strip()))
+        result.append(escape_markdown_text(elem.text.strip(), context="block_start"))
 
     for child in elem:
         if child.tag == "list":
@@ -409,7 +409,7 @@ def handle_item(elem, depth=0):
         text_parts = extract_text_content(elem)
         text = "".join(text_parts).strip()
         if text:
-            result.append(escape_markdown_text(text))
+            result.append(escape_markdown_text(text, context="block_start"))
 
     return result
 
