@@ -16,7 +16,7 @@ if [ -z "${1}" -o ! -d "${1}" ]; then
   exit 1;
 fi
 INPUT=$(realpath --strip ${1});
-TARGET=${INPUT%/*/*}/sorted/${INPUT##*/};
+if [ -z "${TARGET}" ]; then TARGET=${INPUT%/*/*}/sorted/${INPUT##*/}; fi
 if [ ! -d "${TARGET}" ]; then
   echo "merge.slurm: invalid target directory ${TARGET}; exit." >&2;
   exit 1;
@@ -27,7 +27,7 @@ CORES=${SLURM_CPUS_ON_NODE:-8};
 LC_ALL=C;
 locale;
 
-PYTHON=/projappl/project_465001890/oe/python;
+PYTHON=/appl/local/openeurollm/training/catalogue/python;
 if [ ! -f ${PYTHON}/bin/activate ]; then
   echo "prepare.slurm: invalid Python environment ${PYTHON}; exit." >&2;
   exit 1;
