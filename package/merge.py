@@ -28,7 +28,7 @@ def parse(input, min, max):
     except Exception as error:
       print("merge.py: aborting input from {}, #{}: {error}."
             "".format(input["file"], input["n"], error),
-            file = sys.stderr);
+            file = sys.stderr, flush = True);
       input["stream"].close();
       return None, None;
     #
@@ -67,8 +67,8 @@ def main():
       files.append(path);
     else:
       print(f"merge.py: ignoring invalid path {path}.",
-            file = sys.stderr);
-  print(f"merge.py: reading {len(files)} inputs.");
+            file = sys.stderr, flush = True);
+  print(f"merge.py: reading {len(files)} inputs.", flush = True);
   inputs = [];
   for file in files:
     decompressor = zstd.ZstdDecompressor();
@@ -93,14 +93,14 @@ def main():
 #    except Exception as error:
 #      print("merge.py: ignoring invalid JSON from {}, #{}: {}."
 #            "".format(input["file"], input["n"], error),
-#            file = sys.stderr);
+#            file = sys.stderr, flush = True);
 #    try:
 #      xml = document["xml"];
 #      md = xml_to_markdown(xml);
 #    except Exception as error:
 #      print("merge.py: MD failure from {}, #{}: {}."
 #            "".format(input["file"], input["n"], error),
-#            file = sys.stderr);
+#            file = sys.stderr, flush = True);
 #      document = None;
     
     bin = int(key);
@@ -152,7 +152,7 @@ def main():
       o -= 1;
       
   print("merge.py: {} documents; {} inputs; {} outputs; {} seconds."
-        "".format(n, len(files), o, time.time() - start));
+        "".format(n, len(files), o, time.time() - start), flush = True);
 
 if __name__ == "__main__":
   main();
