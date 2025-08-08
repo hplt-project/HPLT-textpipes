@@ -139,6 +139,10 @@ def main():
       o += 1;
     n += 1;
     #
+    # _fix_me_ make sure streams for earlier bins are flushed (closed)
+    #
+    
+    #
     # update next line and key from current input file;
     # re-insert into the priority queue, unless exhausted
     #
