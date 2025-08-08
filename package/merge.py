@@ -6,6 +6,7 @@ import argparse;
 import glob;
 import io;
 import json;
+import multiprocessing as mp;
 from operator import itemgetter;
 import os;
 import sys;
@@ -13,6 +14,53 @@ import time;
 import zstandard as zstd;
 
 from xml2md import xml_to_markdown;
+
+def skip(path, bin, cores = 1, output = None, suffix = ".jsonl.s.zst"):
+
+  if os.path.isdir(path) and output is None:
+    files = glob.glob(os.path.join(path, "*" + suffix));
+    with mp.Pool(cores) as pool:
+      counts = pool.starmap(skip, ((file, bin, 1) for file in files));
+    n = i = 0;
+    for _ in counts: n += _[0]; i += _[1];
+    return n, i;
+  
+  elif not (os.path.isfile(path) and path.endswith(".zst")):
+    print(f"skip(): invalid path {path}; exit.",
+          file = sys.stderr, flush = True);
+    return -1, 0;
+
+  if output is None:
+    if path.endswith(".s.zst"):
+      output = path[:-len("s.zst")] + str(bin) + ".zst";
+    else:
+      output = path[:-len("zst")] + str(bin) + ".zst";
+
+  print(f"skip(): [{bin}] {path} -> {output}.", flush = True);
+
+  decompressor = zstd.ZstdDecompressor();
+  stream = decompressor.stream_reader(open(path, "rb"));
+  stream = io.TextIOWrapper(stream, encoding = "utf-8", errors = "replace");
+  compressor = zstd.ZstdCompressor(level = 10, threads = cores);
+  output = compressor.stream_writer(open(output, "wb"));
+  output = io.TextIOWrapper(output, encoding = "utf-8", errors = "replace");
+
+  n = 0;
+  for i, line in enumerate(stream):
+    try:
+      _ = line.find("\t");
+      key = int(float(line[:_]));
+    except Exception as error:
+      print(f"skip(): invalid line #{i}: {line}; exit",
+            file = sys.stderr, flush = True);
+      return -1, 0;
+    if key > bin: continue;
+    elif key < bin: break;
+    output.write(line);
+    n += 1;
+  stream.close();
+  output.close();
+  return n, i;
 
 def parse(input, min, max):
   while True:
@@ -87,21 +135,22 @@ def main():
     # 
     inputs.sort(key = itemgetter(0));
     key, input = inputs.pop();
-#    document = md = None;
-#    try:
-#      document = json.loads(input["line"]);
-#    except Exception as error:
-#      print("merge.py: ignoring invalid JSON from {}, #{}: {}."
-#            "".format(input["file"], input["n"], error),
-#            file = sys.stderr, flush = True);
-#    try:
-#      xml = document["xml"];
-#      md = xml_to_markdown(xml);
-#    except Exception as error:
-#      print("merge.py: MD failure from {}, #{}: {}."
-#            "".format(input["file"], input["n"], error),
-#            file = sys.stderr, flush = True);
-#      document = None;
+    if False:
+      document = md = None;
+      try:
+        document = json.loads(input["line"]);
+      except Exception as error:
+        print("merge.py: ignoring invalid JSON from {}, #{}: {}."
+              "".format(input["file"], input["n"], error),
+              file = sys.stderr, flush = True);
+      try:
+        xml = document["xml"];
+        md = xml_to_markdown(xml);
+      except Exception as error:
+        print("merge.py: MD failure from {}, #{}: {}."
+              "".format(input["file"], input["n"], error),
+              file = sys.stderr, flush = True);
+        document = None;
     
     bin = int(key);
     #
