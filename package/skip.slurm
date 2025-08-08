@@ -16,6 +16,11 @@ if [ -z "${1}" -o ! -d "${1}" ]; then
   exit 1;
 fi
 INPUT=$(realpath --strip ${1});
+if [ -z "${2}" ]; then
+  echo "skip.slurm: missing second argument (bin index); exit." >&2;
+  exit 1;
+fi
+BIN=${2};
 
 CORES=${SLURM_CPUS_ON_NODE:-8};
 
@@ -41,10 +46,12 @@ echo;
 
 PACKAGE=/projappl/project_465001890/oe/textpipes/package;
 
-python ${PACKAGE}/merge.py \
-  --cores ${CORES} --size $[128 * 1024 ** 3] \
-  --min ${MIN} --max ${MAX} \
-  --target ${TARGET} ${INPUT};
+/usr/bin/time -v python -c "
+import sys;
+sys.path.append(\"${PACKAGE}\");
+import merge;
+merge.skip(\"${INPUT}\", ${BIN}, cores = ${CORES});
+";
 
 echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] merge.slurm: all processing complete."
 exit 0;
