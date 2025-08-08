@@ -9,6 +9,10 @@
 #SBATCH --cpus-per-task=128
 #SBATCH --mem-per-cpu=2G
 
+#
+# for i in 9 8 7 6 5; do sbatch skip.slurm cleaned/eng_Latn $i; done
+#
+
 set -x;
 
 if [ -z "${1}" -o ! -d "${1}" ]; then
@@ -38,7 +42,6 @@ source ${PYTHON}/bin/activate;
 
 echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] skip.slurm: running in $(pwd);"
 echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] skip.slurm: processing: ${INPUT};"
-echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] skip.slurm: into: ${TARGET};"
 echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] skip.slurm: with ${CORES} cores."
 echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] skip.slurm: process environment:"
 env;
@@ -53,5 +56,5 @@ import merge;
 merge.skip(\"${INPUT}\", ${BIN}, cores = ${CORES});
 ";
 
-echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] merge.slurm: all processing complete."
+echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] skip.slurm: all processing complete."
 exit 0;
