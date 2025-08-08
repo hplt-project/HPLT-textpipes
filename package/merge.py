@@ -50,7 +50,7 @@ def main():
   parser.add_argument("--start", type = int, default = 1);
   parser.add_argument("--min", type = int);
   parser.add_argument("--max", type = int);
-  parser.add_argument("--size", type = int, default = 100 * 1024 ** 3);
+  parser.add_argument("--size", type = int, default = 128 * 1024 ** 3);
   parser.add_argument("--lines", type = int);
   parser.add_argument("--target", default = ".");
   parser.add_argument("inputs", nargs = "*");
@@ -138,6 +138,10 @@ def main():
       outputs[bin] = {"file": name, "stream": stream, "i": output["i"] + 1, "n": 0, "s": 0};
       o += 1;
     n += 1;
+    #
+    # _fix_me_ make sure streams for earlier bins are flushed (closed)
+    #
+    
     #
     # update next line and key from current input file;
     # re-insert into the priority queue, unless exhausted
