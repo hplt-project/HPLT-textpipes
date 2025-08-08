@@ -2,7 +2,7 @@
 
 #SBATCH --job-name=merge
 #SBATCH --partition=small
-#SBATCH --account=project_462000131
+#SBATCH --account=project_465001890
 #SBATCH --time=72:00:00
 #SBATCH --mail-type=FAIL
 #SBATCH --ntasks=1
@@ -28,7 +28,7 @@ CORES=${SLURM_CPUS_ON_NODE:-8};
 LC_ALL=C;
 locale;
 
-PYTHON=/appl/local/openeurollm/training/catalogue/python;
+PYTHON=/projappl/project_465001890/oe/python;
 if [ ! -f ${PYTHON}/bin/activate ]; then
   echo "prepare.slurm: invalid Python environment ${PYTHON}; exit." >&2;
   exit 1;
@@ -45,8 +45,19 @@ echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] merge.slurm: process environment:"
 env;
 echo;
 
-PACKAGE=/projappl/project_462000131/oe/textpipes/package;
-python ${PACKAGE}/merge.py --cores ${CORES} --size $[128 * 1024 ** 3] --target ${TARGET} ${INPUT};
+PACKAGE=/projappl/project_465001890/oe/textpipes/package;
+if [ -z "${2}" ]; then
+  MIN=0;
+  MAX=11;    
+else
+  MIN=${2};
+  MAX=$[${2} + 1];    
+fi
+
+python ${PACKAGE}/merge.py \
+  --cores ${CORES} --size $[128 * 1024 ** 3] \
+  --min ${MIN} --max ${MAX} \
+  --target ${TARGET} ${INPUT};
 
 echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] merge.slurm: all processing complete."
 exit 0;
