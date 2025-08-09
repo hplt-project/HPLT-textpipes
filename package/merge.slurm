@@ -44,7 +44,7 @@ echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] merge.slurm: process environment:"
 env;
 echo;
 
-PACKAGE=/projappl/project_465001890/oe/textpipes/package;
+PACKAGE=${HOME}/src/textpipes/package;
 if [ -z "${2}" ]; then
   MIN=0;
   MAX=11;    
