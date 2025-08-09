@@ -61,9 +61,9 @@ else
   fi
 fi
 
-echo python ${PACKAGE}/merge.py \
+python ${PACKAGE}/merge.py \
   --cores ${CORES} --size $[128 * 1024 ** 3] \
-  --suffix ${suffix} \     
+  --suffix ${suffix} \
   --min ${min} --max ${max} \
   --target ${target} ${input};
 
