@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=skip
+#SBATCH --job-name=bin
 #SBATCH --partition=small
 #SBATCH --account=project_465001890
 #SBATCH --time=72:00:00
@@ -10,21 +10,21 @@
 #SBATCH --mem-per-cpu=2G
 
 #
-# for i in 9 8 7 6 5; do sbatch skip.slurm cleaned/eng_Latn $i; done
+# for i in 9 8 7 6 5; do sbatch bin.slurm cleaned/eng_Latn $i; done
 #
 
 set -x;
 
 if [ -z "${1}" -o ! -d "${1}" ]; then
-  echo "skip.slurm: missing or invalid directory argument; exit." >&2;
+  echo "bin.slurm: missing or invalid directory argument; exit." >&2;
   exit 1;
 fi
-INPUT=$(realpath --strip ${1});
+input=$(realpath --strip ${1});
 if [ -z "${2}" ]; then
-  echo "skip.slurm: missing second argument (bin index); exit." >&2;
+  echo "bin.slurm: missing second argument (bin index); exit." >&2;
   exit 1;
 fi
-BIN=${2};
+bin=${2};
 
 CORES=${SLURM_CPUS_ON_NODE:-8};
 
@@ -40,21 +40,21 @@ module reset;
 module load cray-python;
 source ${PYTHON}/bin/activate;
 
-echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] skip.slurm: running in $(pwd);"
-echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] skip.slurm: processing: ${INPUT};"
-echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] skip.slurm: with ${CORES} cores."
-echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] skip.slurm: process environment:"
+echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] bin.slurm: running in $(pwd);"
+echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] bin.slurm: processing: ${input};"
+echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] bin.slurm: with ${CORES} cores."
+echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] bin.slurm: process environment:"
 env;
 echo;
 
-PACKAGE=/projappl/project_465001890/oe/textpipes/package;
+PACKAGE=${HOME}/src/textpipes/package;
 
 /usr/bin/time -v python -c "
 import sys;
 sys.path.append(\"${PACKAGE}\");
 import merge;
-merge.skip(\"${INPUT}\", ${BIN}, cores = ${CORES});
+merge.skip(\"${input}\", ${bin}, cores = ${CORES});
 ";
 
-echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] skip.slurm: all processing complete."
+echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] bin.slurm: all processing complete."
 exit 0;
