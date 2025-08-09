@@ -82,8 +82,8 @@ def parse(input, min, max):
     #
     # skip documents whose WDS _key_ lies outside the [_min_, _max_[ range
     #
-    if min is not None and key < min or max is not None and key >= max:
-      continue;
+    if max is not None and key >= max: continue;
+    if min is not None and key < min: return None, None;
     input["line"] = line;
     return key, input;
     
@@ -155,8 +155,10 @@ def main():
     bin = int(key);
     #
     # create one output file per _bin_, counting from the starting index
+    # _fix_ oe: simplify, take into account that all inputs are sorted
     #
     if bin not in outputs:
+      print(f"merge.py: advancing to bin #{bin}.", flush = True);
       name = os.path.join(arguments.target,
                           f"{bin}_{arguments.start}.jsonl.zst");
       compressor = zstd.ZstdCompressor(level = arguments.level,
@@ -171,6 +173,7 @@ def main():
     output = outputs[bin];
     output["stream"].write(input["line"]);
     output["n"] += 1;
+    n += 1;
     output["s"] += len(input["line"]);
     #
     # advance to new output file after _arguments.lines_ documents
@@ -186,10 +189,6 @@ def main():
       stream = io.TextIOWrapper(stream, encoding = "utf-8", errors = "replace");
       outputs[bin] = {"file": name, "stream": stream, "i": output["i"] + 1, "n": 0, "s": 0};
       o += 1;
-    n += 1;
-    #
-    # _fix_me_ make sure streams for earlier bins are flushed (closed)
-    #
     
     #
     # update next line and key from current input file;

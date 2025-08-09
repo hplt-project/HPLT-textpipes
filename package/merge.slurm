@@ -54,7 +54,7 @@ else
   #
   # see whether we have smaller per-bin files available
   #
-  if [ -f ${target}/1.jsonl.${min}.zst ]; then
+  if [ -n "$(echo ${input}/*.jsonl.${min}.zst)" ]; then
     suffix="jsonl.${min}.zst";
   else      
     suffix="jsonl.s.zst";
