@@ -15,10 +15,10 @@ if [ -z "${1}" -o ! -d "${1}" ]; then
   echo "merge.slurm: missing or invalid directory argument; exit." >&2;
   exit 1;
 fi
-INPUT=$(realpath --strip ${1});
-if [ -z "${TARGET}" ]; then TARGET=${INPUT%/*/*}/sorted/${INPUT##*/}; fi
-if [ ! -d "${TARGET}" ]; then
-  echo "merge.slurm: invalid target directory ${TARGET}; exit." >&2;
+input=$(realpath --strip ${1});
+if [ -z "${target}" ]; then target=${input%/*/*}/sorted/${input##*/}; fi
+if [ ! -d "${target}" ]; then
+  echo "merge.slurm: invalid target directory ${target}; exit." >&2;
   exit 1;
 fi
 
@@ -37,8 +37,8 @@ module load cray-python;
 source ${PYTHON}/bin/activate;
 
 echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] merge.slurm: running in $(pwd);"
-echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] merge.slurm: processing: ${INPUT};"
-echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] merge.slurm: into: ${TARGET};"
+echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] merge.slurm: processing: ${input};"
+echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] merge.slurm: into: ${target};"
 echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] merge.slurm: with ${CORES} cores."
 echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] merge.slurm: process environment:"
 env;
@@ -46,17 +46,26 @@ echo;
 
 PACKAGE=/projappl/project_465001890/oe/textpipes/package;
 if [ -z "${2}" ]; then
-  MIN=0;
-  MAX=11;    
+  min=0;
+  max=11;    
 else
-  MIN=${2};
-  MAX=$[${2} + 1];    
+  min=${2};
+  max=$[${2} + 1];
+  #
+  # see whether we have smaller per-bin files available
+  #
+  if [ -f ${target}/1.jsonl.${min}.zst ]; then
+    suffix="jsonl.${min}.zst";
+  else      
+    suffix="jsonl.s.zst";
+  fi
 fi
 
-python ${PACKAGE}/merge.py \
+echo python ${PACKAGE}/merge.py \
   --cores ${CORES} --size $[128 * 1024 ** 3] \
-  --min ${MIN} --max ${MAX} \
-  --target ${TARGET} ${INPUT};
+  --suffix ${suffix} \     
+  --min ${min} --max ${max} \
+  --target ${target} ${input};
 
 echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] merge.slurm: all processing complete."
 exit 0;
