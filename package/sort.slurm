@@ -25,8 +25,8 @@ if [ ! -f ${1} ]; then
   echo "prepare.slurm: invalid input file ${1}; exit." >&2;
   exit 1;
 fi
-INPUT=$(realpath --strip ${1});
-OUTPUT=${INPUT%.zst}.s.zst;
+input=$(realpath --strip ${1});
+output=${input%.zst}.s.zst;
 
 CORES=${SLURM_CPUS_ON_NODE:-8};
 
@@ -39,7 +39,7 @@ if [ ! -d ${FLASH}/${USER} ]; then
   exit 1;
 fi
 
-PYTHON=/projappl/project_465001890/oe/python;
+PYTHON=/appl/local/openeurollm/training/catalogue/python;
 if [ ! -f ${PYTHON}/bin/activate ]; then
   echo "prepare.slurm: invalid Python environment ${PYTHON}; exit." >&2;
   exit 1;
@@ -48,7 +48,7 @@ module reset;
 module load cray-python;
 source ${PYTHON}/bin/activate;
 
-PACKAGE=/projappl/project_465001890/oe/textpipes/package;
+PACKAGE=${HOME}/src/textpipes/package;
 if [ ! -f ${PACKAGE}/prepare.py ]; then
   echo "prepare.slurm: invalid package directory ${PACKAGE}; exit." >&2;
   exit 1;
@@ -56,18 +56,18 @@ fi
 
 
 echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] prepare.slurm: root in $(pwd);"
-echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] prepare.slurm: processing ${INPUT};"
-echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] prepare.slurm: writing to ${OUTPUT};"
+echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] prepare.slurm: processing ${input};"
+echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] prepare.slurm: writing to ${output};"
 echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] prepare.slurm: with ${CORES} cores."
 
 export LC_ALL=C;
 locale;
 
-python ${PACKAGE}/prepare.py ${INPUT} \
+python ${PACKAGE}/prepare.py ${input} \
 | sort --temporary-directory=${FLASH}/${USER} \
     --key=1,1 --numeric-sort --reverse \
     --parallel=${CORES} --buffer-size=60G \
-| zstd --verbose --no-progress -z -10 -T${CORES} -f - -o ${OUTPUT}
+| zstd --verbose --no-progress -z -10 -T${CORES} -f - -o ${output}
 
 echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] prepare.slurm: all processing complete."
 exit 0;
