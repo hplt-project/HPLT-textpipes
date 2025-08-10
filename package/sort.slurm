@@ -6,7 +6,8 @@
 # while true; do trickle --limit 180 eng.trickle; sleep 60; done
 #
 
-#SBATCH --job-name=prepare
+#SBATCH --job-name=sort
+#SBATCH --output=log/%x-%j.out
 #SBATCH --partition=small
 #SBATCH --account=project_465001890
 #SBATCH --time=2:00:00
@@ -18,11 +19,11 @@
 set -x;
 
 if [ -z "${1}" ]; then
-  echo "prepare.slurm: missing command line argument (input file); exit." >&2;
+  echo "sort.slurm: missing command line argument (input file); exit." >&2;
   exit 1;
 fi
 if [ ! -f ${1} ]; then
-  echo "prepare.slurm: invalid input file ${1}; exit." >&2;
+  echo "sort.slurm: invalid input file ${1}; exit." >&2;
   exit 1;
 fi
 input=$(realpath --strip ${1});
@@ -35,13 +36,13 @@ if [ ! -d ${FLASH}/${USER} ]; then
   mkdir ${FLASH}/${USER};
 fi
 if [ ! -d ${FLASH}/${USER} ]; then
-  echo "prepare.slurm: invalid flash directory ${FLASH}; exit." >&2;
+  echo "sort.slurm: invalid flash directory ${FLASH}; exit." >&2;
   exit 1;
 fi
 
 PYTHON=/appl/local/openeurollm/training/catalogue/python;
 if [ ! -f ${PYTHON}/bin/activate ]; then
-  echo "prepare.slurm: invalid Python environment ${PYTHON}; exit." >&2;
+  echo "sort.slurm: invalid Python environment ${PYTHON}; exit." >&2;
   exit 1;
 fi
 module reset;
@@ -50,15 +51,15 @@ source ${PYTHON}/bin/activate;
 
 PACKAGE=${HOME}/src/textpipes/package;
 if [ ! -f ${PACKAGE}/prepare.py ]; then
-  echo "prepare.slurm: invalid package directory ${PACKAGE}; exit." >&2;
+  echo "sort.slurm: invalid package directory ${PACKAGE}; exit." >&2;
   exit 1;
 fi
 
 
-echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] prepare.slurm: root in $(pwd);"
-echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] prepare.slurm: processing ${input};"
-echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] prepare.slurm: writing to ${output};"
-echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] prepare.slurm: with ${CORES} cores."
+echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] sort.slurm: root in $(pwd);"
+echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] sort.slurm: processing ${input};"
+echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] sort.slurm: writing to ${output};"
+echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] sort.slurm: with ${CORES} cores."
 
 export LC_ALL=C;
 locale;
@@ -69,5 +70,5 @@ python ${PACKAGE}/prepare.py ${input} \
     --parallel=${CORES} --buffer-size=60G \
 | zstd --verbose --no-progress -z -10 -T${CORES} -f - -o ${output}
 
-echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] prepare.slurm: all processing complete."
+echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] sort.slurm: all processing complete."
 exit 0;

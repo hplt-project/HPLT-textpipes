@@ -1,6 +1,7 @@
 #!/bin/bash
 
 #SBATCH --job-name=merge
+#SBATCH --output=log/%x-%j.out
 #SBATCH --partition=small
 #SBATCH --account=project_465001890
 #SBATCH --time=72:00:00
