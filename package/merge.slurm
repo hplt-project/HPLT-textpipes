@@ -55,7 +55,7 @@ else
   #
   # see whether we have smaller per-bin files available
   #
-  if [ -n "(find ${input} -maxdepth 1 -name \*.jsonl.${min}.zst -print -quit)" ]; then
+  if [ -n "$(find ${input} -maxdepth 1 -name \*.jsonl.${min}.zst -print -quit)" ]; then
     suffix="jsonl.${min}.zst";
   else      
     suffix="jsonl.s.zst";
