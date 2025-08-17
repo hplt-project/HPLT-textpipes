@@ -11,7 +11,7 @@
 #SBATCH --time=72:00:00
 #SBATCH --mail-type=FAIL
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=32
+#SBATCH --cpus-per-task=128
 #SBATCH --mem-per-cpu=2G
 
 set -x;
@@ -42,7 +42,14 @@ if [ -z "${2}" ]; then
   exit 1;
 fi
 bin=${2};
-output=$(dirname ${input})/000${bin}.jsonl.zst
+output=${input}/000${bin}.jsonl.zst
+
+for file in ${input}/*.jsonl.${bin}.zst; do
+  pipe=${file%.zst}.pipe;
+  if [ -e ${pipe} ]; then rm -f ${pipe}; fi
+  mkfifo ${pipe};
+  zstdcat ${file} > ${pipe} &
+done
 
 CORES=${SLURM_CPUS_ON_NODE:-8};
 
@@ -68,8 +75,8 @@ locale;
 
 sort --temporary-directory=${FLASH}/${USER} \
   --parallel=$[${CORES} / 2] --buffer-size=60G \
-  --key=1,1 --numeric-sort --reverse \
-  ${input}/*.jsonl.${bin}.zst \
+  --merge --key=1,1 --numeric-sort --reverse --batch-size=4096 \
+  ${input}/*.jsonl.${bin}.pipe \
 | zstd --verbose --no-progress -z -10 -T$[${CORES} / 2] -f - -o ${output}
 
 echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] pack.slurm: all processing complete."
