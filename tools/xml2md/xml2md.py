@@ -4,6 +4,7 @@ import argparse
 import sys
 import jsonlines
 import xml.etree.ElementTree as ET
+import re
 
 MAX_LIST_DEPTH = 5
 VERBOSITY_LEVEL = 2
@@ -59,34 +60,56 @@ def extract_text_content(elem):
     return result
 
 
-def escape_markdown_text(text):
-    # Based on https://github.com/mattcone/markdown-guide/blob/master/_basic-syntax/escaping-characters.md
+def _apply_block_start_escaping(text):
+    # start of block/line - we need to be careful about headings (#), items (+, -, *), blockquotes (>), horizontal rules (---)
+    # maybe definitions (colon) in extended syntax
+
+    text = re.sub(r'^(\s*)#', r'\1\\#', text, flags=re.MULTILINE)
+    text = re.sub(r'^(\s*)\+(\s)', r'\1\\+\2', text, flags=re.MULTILINE)
+    text = re.sub(r'^(\s*)-(\s)', r'\1\\-\2', text, flags=re.MULTILINE)
+    text = re.sub(r'^(\s*)(\d+)\.(\s)', r'\1\2\\.\3', text, flags=re.MULTILINE)
+    #text = re.sub(r'^(\s*)\*(\s)', r'\1\\*\2', text, flags=re.MULTILINE)  # this is already escaped
+    text = re.sub(r'^(\s*)>', r'\1\\>', text, flags=re.MULTILINE)
+    text = re.sub(r'^([^:\n]+):', r'\1\\:', text, flags=re.MULTILINE)
+    text = re.sub(r'^(\s*)(-{3,}|\*{3,}|_{3,})(\s*)$', r'\1\\\2\3', text, flags=re.MULTILINE)
+
+    return text
+
+
+def escape_markdown_text(text, context="inline"):
+    # context is either inline, block_start, table_cell, or link_text (not url)
 
     if not text:
         return text
 
-    escapes = [
-        ('\\', '\\\\'), # backslash is the first to be escaped
-        ('`', '\\`'),
-        ('*', '\\*'),
-        ('_', '\\_'),
-        ('{', '\\{'),
-        ('}', '\\}'),
-        ('[', '\\['),
-        (']', '\\]'),
-        ('(', '\\('),
-        (')', '\\)'),
-        ('#', '\\#'),
-        ('+', '\\+'),
-        ('-', '\\-'),
-        ('.', '\\.'),
-        ('!', '\\!'),
-        ('|', '\\|'),
+    always_escape = [
+        ('\\', '\\\\'),  # backslash is the first to be escaped
+        ('`', '\\`'),    # backtick can break code formatting
+        ('_', '\\_'),    # underscores can create emphasis anywhere
+        ('*', '\\*'),    # asterisks can create emphasis anywhere
     ]
 
     result = text
-    for char, escaped in escapes:
+    for char, escaped in always_escape:
         result = result.replace(char, escaped)
+
+    if context == "block_start":
+        result = _apply_block_start_escaping(result)
+
+    if context == "inline":
+        # escape block-start patterns only if it contains multiple lines (we are not at the beginning of a markdown line now)
+        if '\n' in result:
+            first_line, rest = result.split('\n', 1)
+            escaped_rest = _apply_block_start_escaping(rest)
+            result = first_line + '\n' + escaped_rest
+
+    if context == "table_cell":
+        # escape pipes inside tables
+        result = result.replace('|', '\\|')
+
+    if context == "link_text":
+        result = result.replace('[', '\\[')
+        result = result.replace(']', '\\]')
 
     return result
 
@@ -101,7 +124,6 @@ def handle_head(elem):
 
     level = max(1, min(6, level))
 
-    # Process children with inline context for formatting
     result = []
     if elem.text:
         result.append(escape_markdown_text(elem.text))
@@ -123,7 +145,7 @@ def handle_head(elem):
 def handle_p(elem):
     result = []
     if elem.text:
-        result.append(escape_markdown_text(elem.text))
+        result.append(escape_markdown_text(elem.text, context="block_start"))
 
     for child in elem:
         child_content = process_element(child, inline_context=True)
@@ -142,7 +164,7 @@ def handle_div(elem):
     result = []
 
     if elem.text and elem.text.strip():
-        result.append(escape_markdown_text(elem.text.strip()))
+        result.append(escape_markdown_text(elem.text.strip(), context="block_start"))
 
     for i, child in enumerate(elem):
         child_result = process_element(child)
@@ -187,7 +209,7 @@ def handle_quote(elem):
     """Handle blockquotes."""
     result = []
     if elem.text:
-        result.append(escape_markdown_text(elem.text))
+        result.append(escape_markdown_text(elem.text, context="block_start"))
 
     for child in elem:
         child_content = process_element(child, inline_context=True)
@@ -268,13 +290,13 @@ def handle_cell(elem):
 
     result = []
     if elem.text:
-        result.append(escape_markdown_text(elem.text))
+        result.append(escape_markdown_text(elem.text, context="table_cell"))
 
     for child in elem:
         child_content = process_element(child, inline_context=True)
         result.extend(child_content)
         if child.tail:
-            result.append(escape_markdown_text(child.tail))
+            result.append(escape_markdown_text(child.tail, context="table_cell"))
 
     text = "".join(result).strip()
     # Clean up text for table cell (remove newlines, normalize spaces)
@@ -326,13 +348,13 @@ def handle_inline_formatting(elem):
 def handle_ref(elem):
     result = []
     if elem.text:
-        result.append(escape_markdown_text(elem.text))
+        result.append(escape_markdown_text(elem.text, context="link_text"))
 
     for child in elem:
         child_content = process_element(child, inline_context=True)
         result.extend(child_content)
         if child.tail:
-            result.append(escape_markdown_text(child.tail))
+            result.append(escape_markdown_text(child.tail, context="link_text"))
 
     link_text = "".join(result).strip()
     target = elem.get("target", "")
@@ -342,7 +364,7 @@ def handle_ref(elem):
 
     if not link_text:
         # If no text content, use the target as text
-        link_text = escape_markdown_text(target)
+        link_text = escape_markdown_text(target, context="link_text")
 
     return [f"[{link_text}]({target})"]
 
@@ -382,7 +404,7 @@ def handle_item(elem, depth=0):
     result = []
 
     if elem.text and elem.text.strip():
-        result.append(escape_markdown_text(elem.text.strip()))
+        result.append(escape_markdown_text(elem.text.strip(), context="block_start"))
 
     for child in elem:
         if child.tag == "list":
@@ -400,7 +422,7 @@ def handle_item(elem, depth=0):
         text_parts = extract_text_content(elem)
         text = "".join(text_parts).strip()
         if text:
-            result.append(escape_markdown_text(text))
+            result.append(escape_markdown_text(text, context="block_start"))
 
     return result
 
