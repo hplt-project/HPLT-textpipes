@@ -53,9 +53,15 @@ else
   min=${2};
   max=$[${2} + 1];
   #
+  # see whether we have one giant per-bin file available
+  #
+  if [ -f ${input}/000${min}.jsonl.zst ]; then
+    suffix="000${min}.jsonl.zst";
+    input=${input}/${suffix};
+  #
   # see whether we have smaller per-bin files available
   #
-  if [ -n "$(find ${input} -maxdepth 1 -name \*.jsonl.${min}.zst -print -quit)" ]; then
+  elif [ -n "$(find ${input} -maxdepth 1 -name \*.jsonl.${min}.zst -print -quit)" ]; then
     suffix="jsonl.${min}.zst";
   else      
     suffix="jsonl.s.zst";

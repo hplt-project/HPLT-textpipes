@@ -26,17 +26,6 @@ if [ ! -d ${1} ]; then
 fi
 input=$(realpath --strip ${1});
 
-
-if [ -z "${1}" ]; then
-  echo "pack.slurm: missing command line argument (directory); exit." >&2;
-  exit 1;
-fi
-if [ ! -d ${1} ]; then
-  echo "pack.slurm: invalid input directory ${1}; exit." >&2;
-  exit 1;
-fi
-input=$(realpath --strip ${1});
-
 if [ -z "${2}" ]; then
   echo "pack.slurm: missing command line argument (bin); exit." >&2;
   exit 1;
