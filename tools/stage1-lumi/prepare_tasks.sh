@@ -16,13 +16,13 @@ fi
 START_IDX=1
 while read CRAWL_PATH; do
   echo $CRAWL_PATH
-  CRAWL_NAME=${CRAWL_PATH#s3://}
-  s3cmd ls -r $CRAWL_PATH \
-  | awk '$4 ~ /.*\.warc\.gz/ { print $4; }' > $CRAWL_NAME.crawl.txt
+  CRAWL_NAME=$(basename "$CRAWL_PATH")
+  s3cmd ls -r "$CRAWL_PATH" \
+  | sed 's|^.*s3://|s3://|' | grep '.*\.warc\.gz$' > $CRAWL_NAME.crawl.txt
   N_FILES=$(wc -l $CRAWL_NAME.crawl.txt | cut -d' ' -f 1)
   shuf $CRAWL_NAME.crawl.txt \
   | split -a 4 --numeric-suffixes=$START_IDX -l $BATCH_SIZE - batch.
-  # START_IDX += ceiling(N_FILES / BATCH_SIZE)
+  # the meaning of the line below: START_IDX += ceiling(N_FILES / BATCH_SIZE)
   START_IDX=$(( $START_IDX + ($N_FILES+$BATCH_SIZE-1) / $BATCH_SIZE ))
 done
 
@@ -36,7 +36,7 @@ for BATCH_FILE in batch.*; do
   echo $BATCH_ID >> tasks
 done
 
-# generate a list of batch directories and split it over nodes
+# shuffle the list of batch directories and split it over nodes
 # NOTE: if using more than 10 nodes, change the -a parameter value
-split -a 1 -d -n r/$N_NODES tasks tasks.
+shuf tasks | split -a 1 -d -n r/$N_NODES - tasks.
 rm tasks
