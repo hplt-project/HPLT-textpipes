@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Exit if any of the subcommands returns errors.
+set -eo pipefail
+
 BATCH_ID=$1
 cd $BATCH_ID
 
@@ -8,39 +11,37 @@ if [ -z "$S3_OUTPUT_PREFIX" ]; then
   exit 1
 fi
 
+SCRIPTS_DIR=$(dirname $(realpath ${BASH_SOURCE[0]}))
+
 # create named pipes for the output files
 OUTPUT_DIR=output
 mkdir -p $OUTPUT_DIR
 mkfifo $OUTPUT_DIR/html.zst
 mkfifo $OUTPUT_DIR/pdf.warc.gz
 
-# create named pipes for the input files
-cat paths \
-  | while read SOURCEFILE; do
-      INPUTFILE=${SOURCEFILE#s3://}
-      mkdir -p $(dirname $INPUTFILE)
-      mkfifo $INPUTFILE
-      echo $INPUTFILE
-    done > inputfiles.txt
-
-# It is important that warc2text processes the input files in the same order
-# in which they are streamed (not necessarily alphabetic!). Hence we prepare
-# a list of input files like this instead of using input/*.warc.gz.
-readarray -t INPUTFILES < inputfiles.txt
+# Create named pipes for the input files.
+# We also keep a list of input file paths so that they can be passed
+# to warc2text in the same order as they are streamed.
+while read -r SOURCEFILE; do
+  INPUTFILE=${SOURCEFILE#s3://}
+  mkdir -p $(dirname "$INPUTFILE")
+  mkfifo "$INPUTFILE"
+  echo "$INPUTFILE"
+done < paths > inputfiles.txt
 
 # Run a single input streaming process per batch in the background.
 # s3cmd get's are executed sequentially.
-cat paths \
-  | while read SOURCEFILE; do
-    s3cmd get $SOURCEFILE - > ${SOURCEFILE#s3://}
-done &
+while read -r SOURCEFILE; do
+    s3cmd get "$SOURCEFILE" - > "${SOURCEFILE#s3://}"
+done < paths &
 
-# FIXME where is the url-filter-list?
+xargs -d '\n' \
 warc2text --encoding-errors replace -f html,metadata --jsonl --compress zstd \
           --pdfpass $OUTPUT_DIR/pdf --robotspass $OUTPUT_DIR/robotstxt \
           --compress-level 9 --skip-text-extraction --classifier skip \
-          --url-filters ../url-filter-list.optimised \
-          -o $OUTPUT_DIR ${INPUTFILES[@]} 2> warc2text.log &
+          --url-filters $SCRIPTS_DIR/url-filter-list.optimised \
+          -o $OUTPUT_DIR \
+< inputfiles.txt 2> warc2text.log &
 
 # stream the PDF and HTML output
 s3cmd --progress put - $S3_OUTPUT_PREFIX/$BATCH_ID/pdf.warc.gz \
@@ -55,7 +56,7 @@ s3cmd --progress put $OUTPUT_DIR/robotstxt.warc.gz \
       $S3_OUTPUT_PREFIX/$BATCH_ID/robotstxt.warc.gz &> upload.robotstxt.log
 
 # delete the input and output files
-for INPUTFILE in ${INPUTFILES[@]}; do
-  rm -rf ${INPUTFILE%%/*};
-done
+while read -r INPUTFILE; do
+  rm -rf "${INPUTFILE%%/*}";
+done < inputfiles.txt
 rm -rf $OUTPUT_DIR

@@ -13,6 +13,5 @@ module load LUMI/24.03
 module load nlpl-warc2text/1.3.0
 module load parallel
 
-# TODO parallel: keep track of failed jobs?
-srun bash -c "parallel -j \$SLURM_CPUS_PER_TASK -a tasks.\$SLURM_NODEID process_batch.sh {}"
+srun bash -c "parallel --joblog joblog.\$SLURM_NODEID -j \$SLURM_CPUS_PER_TASK -a tasks.\$SLURM_NODEID process_batch.sh {}"
 
