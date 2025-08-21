@@ -62,6 +62,46 @@ def skip(path, bin, cores = 1, output = None, suffix = ".jsonl.s.zst"):
   output.close();
   return n, i;
 
+def split(path, cores = 1, suffix = ".jsonl.zst"):
+
+  if os.path.isdir(path) and output is None:
+    files = glob.glob(os.path.join(path, "*" + suffix));
+    with mp.Pool(cores) as pool:
+      counts = pool.starmap(split, ((file, 1) for file in files));
+    n = i = o = 0;
+    for _ in counts: n += _[0]; i += _[1]; o += _[2];
+    return n, i, o;
+  
+  elif not (os.path.isfile(path) and path.endswith(".zst")):
+    print(f"split(): invalid path {path}; exit.",
+          file = sys.stderr, flush = True);
+    return -1, 0, 0;
+
+  decompressor = zstd.ZstdDecompressor();
+  stream = decompressor.stream_reader(open(path, "rb"));
+  stream = io.TextIOWrapper(stream, encoding = "utf-8", errors = "replace");
+  outputs = dict();
+  for i, line in enumerate(stream):
+    try:
+      lang = json.loads(line)["lang"][0];
+    except Exception as error:
+      print(f"split(): invalid line #{i}: {line}; exit",
+            file = sys.stderr, flush = True);
+      return -1, 0, 0;
+    if lang not in outputs:
+      base = path.split(os.path.sep)[:-2];
+      target = os.path.join(os.path.sep.join(base), lang);
+      os.makedirs(target, exist_ok = True);
+      output = os.path.join(target, os.path.basename(path));
+      compressor = zstd.ZstdCompressor(level = 10, threads = cores);
+      _ = compressor.stream_writer(open(output, "wb"));
+      outputs[lang] = io.TextIOWrapper(_, encoding = "utf-8", errors = "replace");
+    outputs[lang].write(line);
+    
+  stream.close();
+  for _ in outputs.values(): _.close();
+  return 1, i, len(outputs);
+
 def parse(input, min, max):
   while True:
     line = next(input["stream"], None);

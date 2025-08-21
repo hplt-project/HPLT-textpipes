@@ -34,7 +34,7 @@ locale;
 
 PYTHON=/appl/local/openeurollm/training/catalogue/python;
 if [ ! -f ${PYTHON}/bin/activate ]; then
-  echo "prepare.slurm: invalid Python environment ${PYTHON}; exit." >&2;
+  echo "bin.slurm: invalid Python environment ${PYTHON}; exit." >&2;
   exit 1;
 fi
 module reset;
