@@ -49,6 +49,14 @@ PACKAGE=${HOME}/src/textpipes/package;
 if [ -z "${2}" ]; then
   min=0;
   max=11;    
+  #
+  # see whether we have unlumping per-bin files available 
+  #
+  if [ -n "$(find ${input} -maxdepth 1 -name \*.jsonl.l.zst -print -quit)" ]; then
+    suffix="jsonl.l.zst";
+  else      
+    suffix="jsonl.s.zst";
+  fi
 else
   min=${2};
   max=$[${2} + 1];
