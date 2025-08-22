@@ -3,11 +3,11 @@
 #SBATCH --job-name=split
 #SBATCH --output=log/%x-%j.out
 #SBATCH --partition=small
-#SBATCH --account=project_465001890
+#SBATCH --account=project_462000131
 #SBATCH --time=12:00:00
 #SBATCH --mail-type=FAIL
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=128
+#SBATCH --cpus-per-task=64
 #SBATCH --mem-per-cpu=2G
 
 #

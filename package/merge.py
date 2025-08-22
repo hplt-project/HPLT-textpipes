@@ -64,7 +64,7 @@ def skip(path, bin, cores = 1, output = None, suffix = ".jsonl.s.zst"):
 
 def split(path, cores = 1, suffix = ".jsonl.zst"):
 
-  if os.path.isdir(path) and output is None:
+  if os.path.isdir(path):
     files = glob.glob(os.path.join(path, "*" + suffix));
     with mp.Pool(cores) as pool:
       counts = pool.starmap(split, ((file, 1) for file in files));
@@ -92,7 +92,8 @@ def split(path, cores = 1, suffix = ".jsonl.zst"):
       base = path.split(os.path.sep)[:-2];
       target = os.path.join(os.path.sep.join(base), lang);
       os.makedirs(target, exist_ok = True);
-      output = os.path.join(target, os.path.basename(path));
+      name = os.path.basename(path)[:-len("zst")] + "l.zst";
+      output = os.path.join(target, name);
       compressor = zstd.ZstdCompressor(level = 10, threads = cores);
       _ = compressor.stream_writer(open(output, "wb"));
       outputs[lang] = io.TextIOWrapper(_, encoding = "utf-8", errors = "replace");
@@ -101,6 +102,12 @@ def split(path, cores = 1, suffix = ".jsonl.zst"):
   stream.close();
   for _ in outputs.values(): _.close();
   return 1, i, len(outputs);
+
+def shard(path, cores = 1, suffix = ".jsonl.l.zst"):
+  for bin in range(0,11):
+    files = glob.glob(os.path.join(path, str(bin) + "_*" + suffix));
+    if len(files) > 1:
+      print(files);
 
 def parse(input, min, max):
   while True:
