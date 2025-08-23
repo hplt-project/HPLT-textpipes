@@ -142,7 +142,7 @@ def shard(source, target, cores = 1,
             output = compressor.stream_writer(open(name, "wb"));
             output = io.TextIOWrapper(output, encoding = "utf-8", errors = "replace");
             o += 1;
-            print(f"{file} -> {output}", flush = True);
+            print(f"{file} -> {name}", flush = True);
           d += 1;
       output.close();
     i += len(files);
