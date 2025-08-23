@@ -76,11 +76,20 @@ else
   fi
 fi
 
-python ${PACKAGE}/merge.py \
-  --cores ${CORES} --size $[128 * 1024 ** 3] \
-  --suffix ${suffix} \
-  --min ${min} --max ${max} \
-  --target ${target} ${input};
+if [ "${suffix}" = "jsonl.l.zst" ]; then
+  python -c "
+import sys;
+sys.path.append(\"${PACKAGE}\");
+import merge;
+merge.shard(\"${input}\", \"${target}\", cores = ${CORES});
+  "
+else
+  python ${PACKAGE}/merge.py \
+    --cores ${CORES} --size $[128 * 1024 ** 3] \
+    --suffix ${suffix} \
+    --min ${min} --max ${max} \
+    --target ${target} ${input};
+fi
 
 echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] merge.slurm: all processing complete."
 exit 0;

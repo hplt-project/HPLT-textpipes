@@ -9,6 +9,7 @@ import json;
 import multiprocessing as mp;
 from operator import itemgetter;
 import os;
+import shutil;
 import sys;
 import time;
 import zstandard as zstd;
@@ -103,11 +104,49 @@ def split(path, cores = 1, suffix = ".jsonl.zst"):
   for _ in outputs.values(): _.close();
   return 1, i, len(outputs);
 
-def shard(path, cores = 1, suffix = ".jsonl.l.zst"):
+def shard(source, target, cores = 1,
+          suffix = ".jsonl.l.zst", size = 128 * 1024 ** 3):
+
+  if not os.path.isdir(target):
+    print(f"shard(): invalid target directory {target}; exit.",
+          file = sys.stderr, flush = True);
+    return None;
+          
+  i = d = o = 0;
   for bin in range(0,11):
-    files = glob.glob(os.path.join(path, str(bin) + "_*" + suffix));
-    if len(files) > 1:
-      print(files);
+    files = sorted(glob.glob(os.path.join(source, str(bin) + "_*" + suffix)));
+    if len(files) == 1:
+      name = os.path.basename(files[0]);
+      if name.endswith(".l.zst"): name = name[:-len("l.zst")] + "zst";
+      print(f"{files[0]} == {os.path.join(target, name)}", flush = True);
+      shutil.copy2(files[0], os.path.join(target, name));
+    elif len(files) > 1:
+      n = 1; b = 0;
+      name = os.path.join(target, f"{bin}_{n}.jsonl.zst");
+      compressor = zstd.ZstdCompressor(level = 10, threads = cores);
+      output = compressor.stream_writer(open(name, "wb"));
+      output = io.TextIOWrapper(output, encoding = "utf-8", errors = "replace");
+      o += 1;
+      for file in files:
+        print(f"{file} -> {name}", flush = True);
+        decompressor = zstd.ZstdDecompressor();
+        input = decompressor.stream_reader(open(file, "rb"));
+        input = io.TextIOWrapper(input, encoding = "utf-8", errors = "replace");
+        for line in input:
+          output.write(line);
+          b += len(line);
+          if b >= size:
+            output.close(); b = 0;
+            n += 1;
+            name = os.path.join(target, f"{bin}_{n}.jsonl.zst");
+            output = compressor.stream_writer(open(name, "wb"));
+            output = io.TextIOWrapper(output, encoding = "utf-8", errors = "replace");
+            o += 1;
+            print(f"{file} -> {output}", flush = True);
+          d += 1;
+      output.close();
+    i += len(files);
+  return i, d, o;
 
 def parse(input, min, max):
   while True:
