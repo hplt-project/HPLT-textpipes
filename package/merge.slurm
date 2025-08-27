@@ -49,6 +49,14 @@ PACKAGE=${HOME}/src/textpipes/package;
 if [ -z "${2}" ]; then
   min=0;
   max=11;    
+  #
+  # see whether we have unlumping per-bin files available 
+  #
+  if [ -n "$(find ${input} -maxdepth 1 -name \*.jsonl.l.zst -print -quit)" ]; then
+    suffix="jsonl.l.zst";
+  else      
+    suffix="jsonl.s.zst";
+  fi
 else
   min=${2};
   max=$[${2} + 1];
@@ -68,11 +76,20 @@ else
   fi
 fi
 
-python ${PACKAGE}/merge.py \
-  --cores ${CORES} --size $[128 * 1024 ** 3] \
-  --suffix ${suffix} \
-  --min ${min} --max ${max} \
-  --target ${target} ${input};
+if [ "${suffix}" = "jsonl.l.zst" ]; then
+  python -c "
+import sys;
+sys.path.append(\"${PACKAGE}\");
+import merge;
+merge.shard(\"${input}\", \"${target}\", cores = ${CORES});
+  "
+else
+  python ${PACKAGE}/merge.py \
+    --cores ${CORES} --size $[128 * 1024 ** 3] \
+    --suffix ${suffix} \
+    --min ${min} --max ${max} \
+    --target ${target} ${input};
+fi
 
 echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] merge.slurm: all processing complete."
 exit 0;

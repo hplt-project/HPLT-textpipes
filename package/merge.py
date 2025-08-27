@@ -9,6 +9,7 @@ import json;
 import multiprocessing as mp;
 from operator import itemgetter;
 import os;
+import shutil;
 import sys;
 import time;
 import zstandard as zstd;
@@ -61,6 +62,91 @@ def skip(path, bin, cores = 1, output = None, suffix = ".jsonl.s.zst"):
   stream.close();
   output.close();
   return n, i;
+
+def split(path, cores = 1, suffix = ".jsonl.zst"):
+
+  if os.path.isdir(path):
+    files = glob.glob(os.path.join(path, "*" + suffix));
+    with mp.Pool(cores) as pool:
+      counts = pool.starmap(split, ((file, 1) for file in files));
+    n = i = o = 0;
+    for _ in counts: n += _[0]; i += _[1]; o += _[2];
+    return n, i, o;
+  
+  elif not (os.path.isfile(path) and path.endswith(".zst")):
+    print(f"split(): invalid path {path}; exit.",
+          file = sys.stderr, flush = True);
+    return -1, 0, 0;
+
+  decompressor = zstd.ZstdDecompressor();
+  stream = decompressor.stream_reader(open(path, "rb"));
+  stream = io.TextIOWrapper(stream, encoding = "utf-8", errors = "replace");
+  outputs = dict();
+  for i, line in enumerate(stream):
+    try:
+      lang = json.loads(line)["lang"][0];
+    except Exception as error:
+      print(f"split(): invalid line #{i}: {line}; exit",
+            file = sys.stderr, flush = True);
+      return -1, 0, 0;
+    if lang not in outputs:
+      base = path.split(os.path.sep)[:-2];
+      target = os.path.join(os.path.sep.join(base), lang);
+      os.makedirs(target, exist_ok = True);
+      name = os.path.basename(path)[:-len("zst")] + "l.zst";
+      output = os.path.join(target, name);
+      compressor = zstd.ZstdCompressor(level = 10, threads = cores);
+      _ = compressor.stream_writer(open(output, "wb"));
+      outputs[lang] = io.TextIOWrapper(_, encoding = "utf-8", errors = "replace");
+    outputs[lang].write(line);
+    
+  stream.close();
+  for _ in outputs.values(): _.close();
+  return 1, i, len(outputs);
+
+def shard(source, target, cores = 1,
+          suffix = ".jsonl.l.zst", size = 128 * 1024 ** 3):
+
+  if not os.path.isdir(target):
+    print(f"shard(): invalid target directory {target}; exit.",
+          file = sys.stderr, flush = True);
+    return None;
+          
+  i = d = o = 0;
+  for bin in range(0,11):
+    files = sorted(glob.glob(os.path.join(source, str(bin) + "_*" + suffix)));
+    if len(files) == 1:
+      name = os.path.basename(files[0]);
+      if name.endswith(".l.zst"): name = name[:-len("l.zst")] + "zst";
+      print(f"{files[0]} == {os.path.join(target, name)}", flush = True);
+      shutil.copy2(files[0], os.path.join(target, name));
+    elif len(files) > 1:
+      n = 1; b = 0;
+      name = os.path.join(target, f"{bin}_{n}.jsonl.zst");
+      compressor = zstd.ZstdCompressor(level = 10, threads = cores);
+      output = compressor.stream_writer(open(name, "wb"));
+      output = io.TextIOWrapper(output, encoding = "utf-8", errors = "replace");
+      o += 1;
+      for file in files:
+        print(f"{file} -> {name}", flush = True);
+        decompressor = zstd.ZstdDecompressor();
+        input = decompressor.stream_reader(open(file, "rb"));
+        input = io.TextIOWrapper(input, encoding = "utf-8", errors = "replace");
+        for line in input:
+          output.write(line);
+          b += len(line);
+          if b >= size:
+            output.close(); b = 0;
+            n += 1;
+            name = os.path.join(target, f"{bin}_{n}.jsonl.zst");
+            output = compressor.stream_writer(open(name, "wb"));
+            output = io.TextIOWrapper(output, encoding = "utf-8", errors = "replace");
+            o += 1;
+            print(f"{file} -> {name}", flush = True);
+          d += 1;
+      output.close();
+    i += len(files);
+  return i, d, o;
 
 def parse(input, min, max):
   while True:
