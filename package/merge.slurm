@@ -28,7 +28,7 @@ CORES=${SLURM_CPUS_ON_NODE:-8};
 LC_ALL=C;
 locale;
 
-PYTHON=/appl/local/openeurollm/training/catalogue/python;
+PYTHON=/appl/local/openeurollm/training/catalogue/local;
 if [ ! -f ${PYTHON}/bin/activate ]; then
   echo "prepare.slurm: invalid Python environment ${PYTHON}; exit." >&2;
   exit 1;
