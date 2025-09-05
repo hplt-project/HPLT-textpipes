@@ -30,6 +30,11 @@ pip install -r requirements_LUMIextra.txt
 pip install .  
 ```
 
+Download the language identification model weights:
+```commandline
+stage2download.sh
+```
+
 ### Install on other systems (not tested!)
 You might want to install on your local machine or a cluster other than LUMI.
 Install using pip all the requirements, including those coming from cray-python module on LUMI: 
@@ -49,9 +54,43 @@ TBD: instructions for stage1 running on LUMI
 
 ### Stage2 (a.k.a. html2text)
 
-This stage extracts text and various metadata from htmls and performs language identification.
+Stage2 does text extraction with boilerplate removal (Trafilatura) and language identification (fasterText with the openLID model).
+It is executed on 100 LUMI compute nodes, in 250 parallel processes on each.
 
-TBD: instructions for stage2 running on LUMI
+Prepare LUMI environment:
+```commandline
+source src/warc2text_runner/stage2/stage2preplumic.sh
+source venv/bin/activate
+```
+
+Prepare a list of HTML files to process from LUMIO:
+```commandline
+rclone ls --include="html.zst" lumio:htmlsample | sed -r 's!( *[0-9]+\s+)!\1 lumio:htmlsample/!' >lumio.paths
+```
+
+NB! If you want to process local files, please create an rclone endpoint with the type 'alias' for the parent folder of
+all of these files and provide a list of files in the format endpoint:path. The code supports only paths in this format.
+It strips endpoint: and reconstructs path under the specified OUTPUT directory.
+
+Specify the account and the partition SLURM should use:
+```commandline
+export SLURM_ACCOUNT=project_465001890
+export SLURM_MEM_PER_NODE=0  # same as --mem=0, requests all memory since standard nodes are allocated fully
+export SLURM_PARTITION=standard
+export SLURM_TIMELIMIT=0-48:00:00
+```
+
+```commandline
+export SLURM_ACCOUNT=project_465001890
+export SLURM_MEM_PER_CPU=1750M  # same as --mem-per-cpu=1750M, recommended for the small partition in the LUMI docs to avoid extra billing for larger memory nodes
+export SLURM_PARTITION=small
+export SLURM_TIMELIMIT=0-72:00:00
+```
+
+Run processing in 100 parallel nodes max, 50 GB of input HTMLs per SLURM job:
+```commandline
+stage2nodeparallel_batched.sh 100 lumio.paths 50 ~/hplt/three/html_test
+```
 
 ### Older versions
 The code for text extraction in this repository is based on 
