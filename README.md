@@ -9,6 +9,7 @@ See more details in the [Deliverable Report 7.2](https://hplt-project.org/HPLT_D
 ## Data ingestion
 - [Internet Archive downloader](https://github.com/hplt-project/ia-download)
 - [Helper scripts for CommonCrawl downloading](https://github.com/hplt-project/cc-download)
+- [LUMI-specific scripts for CommonCrawl downloading directly to LUMIO](download/cc)
 
 The output of this stage consists of WARC files.
 
