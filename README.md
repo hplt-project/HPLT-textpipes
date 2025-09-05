@@ -43,6 +43,7 @@ python -m venv venv
 source venv/bin/activate
 pip install -r  requirements_LUMIall.txt
 pip install .
+stage2download.sh
 ```
 
 
