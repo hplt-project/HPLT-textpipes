@@ -59,7 +59,7 @@ It is executed on 100 LUMI compute nodes, in 250 parallel processes on each.
 
 Prepare LUMI environment:
 ```commandline
-source src/warc2text_runner/stage2/stage2preplumic.sh
+source preplumicpu.sh
 source venv/bin/activate
 ```
 
