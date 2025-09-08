@@ -16,9 +16,11 @@ can be called from anywhere. E.g. in the repo root directory:
 export PATH="<path to this repo>/tools/stage1-lumi:$PATH"
 ```
 
-You also need to set the variable `S3_OUTPUT_PREFIX` to the output path in LUMI-O:
+Project-specific setup - setting the account and the EasyBuild directory
+(in which warc2text is presumably installed):
 ```
-export S3_OUTPUT_PREFIX=s3://bucket/path
+export SBATCH_ACCOUNT=project_<project id>
+module use <path to project-specific EasyBuild directory>/modules/LUMI/24.03/partition/C/
 ```
 
 Finally, set up a directory for temporary data on `/scratch` and **change
@@ -55,6 +57,6 @@ number of nodes and allocated time.
 
 Then, submit the job:
 ```
-sbatch <path to this repo>/tools/stage1-lumi/run.sh
+sbatch <path to this repo>/tools/stage1-lumi/run.sh s3://<your output prefix>
 ```
 

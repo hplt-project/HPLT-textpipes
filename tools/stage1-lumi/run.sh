@@ -1,17 +1,22 @@
 #!/bin/bash
-#SBATCH --account=project_462000827
 #SBATCH --partition=small
-#SBATCH --nodes=2
+#SBATCH --nodes=5
 #SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=16
+#SBATCH --cpus-per-task=128
 #SBATCH --mem-per-cpu=1750
-#SBATCH --time=01:30:00
+#SBATCH --time=72:00:00
 
+S3_OUTPUT_PREFIX=$1
+if [ -z "$S3_OUTPUT_PREFIX" ]; then
+  echo "usage: run.sh S3_OUTPUT_PREFIX"
+  exit 1
+fi
 
-module use /projappl/project_462000828/EasyBuild/modules/LUMI/24.03/partition/C/
+module purge
+module load lumio
 module load LUMI/24.03
-module load nlpl-warc2text/1.3.0
-module load parallel
+module load nlpl-warc2text/1.4.0
+module load parallel/20240522
 
-srun bash -c "parallel --joblog joblog.\$SLURM_NODEID -j \$SLURM_CPUS_PER_TASK -a tasks.\$SLURM_NODEID process_batch.sh {}"
+srun bash -c "parallel --joblog joblog.\$SLURM_NODEID -j \$SLURM_CPUS_PER_TASK -a tasks.\$SLURM_NODEID process_batch.sh {} $S3_OUTPUT_PREFIX"
 
