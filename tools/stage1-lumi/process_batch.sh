@@ -34,9 +34,11 @@ while read -r SOURCEFILE; do
 done < paths &
 
 # stream the PDF and HTML output
-s3cmd --progress put - $S3_OUTPUT_PREFIX/$BATCH_ID/pdf.warc.gz \
+s3cmd --progress --multipart-chunk-size-mb=1024 \
+      put - $S3_OUTPUT_PREFIX/$BATCH_ID/pdf.warc.gz \
       < $OUTPUT_DIR/pdf.warc.gz &> upload.pdf.log &
-s3cmd --progress put - $S3_OUTPUT_PREFIX/$BATCH_ID/html.zst \
+s3cmd --progress --multipart-chunk-size-mb=1024 \
+      put - $S3_OUTPUT_PREFIX/$BATCH_ID/html.zst \
       < $OUTPUT_DIR/html.zst &> upload.html.log &
 
 # run warc2text
