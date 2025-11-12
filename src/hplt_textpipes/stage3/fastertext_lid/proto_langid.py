@@ -44,7 +44,7 @@ class FastTextLangId:
         else:
             self.logger = logging.getLogger(name=f"{identity}_langid_logger_disabled")
             self.logger.disabled = True
-
+        self.identity = identity;
         self.model = fasttext.load_model(model_path)
         self.logger.debug(f"FastTextLangId model loaded: {model_path}.")
 
@@ -110,7 +110,8 @@ class FastTextLangId:
                 else:
                     self.logger.debug("Case: text is ok.")
                     text = json_line["t"];
-                    if "openlid" in self.identity: text = self._preproccess_text(text);
+                    if self.identity is None or "openlid" in self.identity:
+                        text = self._preproccess_text(text);
                     prediction = self.model.predict(
                         text=text,
                         k=3,
@@ -118,16 +119,11 @@ class FastTextLangId:
                         on_unicode_error="strict",
                     )
 
-                    print(
-                        ujson.dumps(
-                            {
-                                "lang": self._postprocess_predicted_labels(prediction),
-                                "prob": self._postprocess_predicted_probabilities(
-                                    prediction
-                                ),
-                            }
-                        )
-                    )
+                    result = { "lang": self._postprocess_predicted_labels(prediction),
+                               "prob": self._postprocess_predicted_probabilities(prediction) };
+                    if self.identity is not None:
+                        result = {self.identity: result};
+                    print(ujson.dumps(result));
 
         return None
 
