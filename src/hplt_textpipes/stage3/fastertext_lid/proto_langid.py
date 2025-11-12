@@ -166,7 +166,7 @@ if __name__ == "__main__":
     model = args.model_path;
     if model is None:
         base = os.path.dirname(os.path.realpath(__file__));
-        model = os.path.join(base, "args.identity" + ".bin");
+        model = os.path.join(base, args.identity + ".bin");
     if not os.path.isfile(model):
         base = os.path.join(Path.home(), ".cache", "hplt");
         model = os.path.join(base, args.identity + ".bin");
