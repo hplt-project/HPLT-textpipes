@@ -38,6 +38,7 @@ script-files = [
     "src/hplt_textpipes/stage2/stage2local_batch.sh",
     "src/hplt_textpipes/stage2/stage2stagelumio.sh",
     "src/hplt_textpipes/stage2/stage2stage.sh",
+    "src/hplt_textpipes/stage3/stage3download.sh",
 
     #    "src/hplt_textpipes/stage1/generate_tasks.sh",
 #    "src/hplt_textpipes/stage1/run_warc2html_local.sh",

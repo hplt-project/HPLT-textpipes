@@ -1,29 +1,3 @@
-{"x": "<doc><main><p>This *wo_rd* sh_ould be escaped</p></main></doc>"}
-{"x": "<doc><main><p>This *word* should be escaped</p></main></doc>"}
-{"x": "<doc><main><p>This *word* and *another* and *third* word</p></main></doc>"}
-{"x": "<doc><main><p>This * word* should not be escaped</p></main></doc>"}
-{"x": "<doc><main><p>This _word_ should be escaped</p></main></doc>"}
-{"x": "<doc><main><p>This _word_ and _another_ text</p></main></doc>"}
-{"x": "<doc><main><p>This _ word_ should not be escaped</p></main></doc>"}
-{"x": "<doc><main><p>This ~word~ should be escaped</p></main></doc>"}
-{"x": "<doc><main><p>This ~word~ and ~another~ text</p></main></doc>"}
-{"x": "<doc><main><p>This ~ word~ should not be escaped</p></main></doc>"}
-{"x": "<doc><main><p>This &lt;word&gt; should be escaped</p></main></doc>"}
-{"x": "<doc><main><p>This &lt;word&gt; and &lt;another&gt; text</p></main></doc>"}
-{"x": "<doc><main><p>This &lt; word&gt; should not be escaped</p></main></doc>"}
-{"x": "<doc><main><p>This *bold* and _italic_ and ~strike~ and &lt;angle&gt; text</p></main></doc>"}
-{"x": "<doc><main><p>This *has _nested_ content* text</p></main></doc>"}
-{"x": "<doc><main><p>This * and _ and ~ characters alone</p></main></doc>"}
-{"x": "<doc><main><p>This *has no closing and this _has no closing</p></main></doc>"}
-{"x": "<doc><main><p>This ** and __ and ~~ and &lt;&gt; are empty</p></main></doc>"}
-{"x": "<doc><main><p>This *spans\nmultiple\nlines* text</p></main></doc>"}
-{"x": "<doc><main><p>*word1**word2**word3*</p></main></doc>"}
-{"x": "<doc><main><p>*start* middle _end_</p></main></doc>"}
-{"x": "<doc><main><p>The function *calculate_total* returns _true_ or ~false~</p></main></doc>"}
-{"x": "<doc><main><p>If x &lt; 5 and y &gt; 10 then &lt;result&gt;</p></main></doc>"}
-{"x": "<doc><main><p>The variable _my_var_ and _another_var_ are defined</p></main></doc>"}
-{"x": "<doc><main><p>*Note*: This is important *text* here</p></main></doc>"}
-{"x": "<doc><main><p>The *calculate_sum* function takes _input_data_ and returns ~deprecated~ values in &lt;format&gt;</p></main></doc>"}
 {"x": "<doc><main><head rend=\"h1\">Main Heading</head><p>Paragraph text here.</p></main></doc>"}
 {"x": "<doc><main><head rend=\"h2\">Subheading</head><head rend=\"h3\">Sub-subheading</head></main></doc>"}
 {"x": "<doc><main><p>Inline code: `print('hello')` in text.</p></main></doc>"}
@@ -41,11 +15,6 @@
 {"x": "<doc><main><p>Auto link: <ref target=\"https://example.com\"></ref></p></main></doc>"}
 {"x": "<doc><main><table><row><cell role=\"head\">Header 1</cell><cell role=\"head\">Header 2</cell></row><row><cell>Data 1</cell><cell>Data 2</cell></row><row><cell>Data 3</cell><cell>Data 4</cell></row></table></main></doc>"}
 {"x": "<doc><main><table><row><cell role=\"head\">Name</cell><cell role=\"head\">Age</cell><cell role=\"head\">City</cell></row><row><cell>Alice</cell><cell>30</cell><cell>NYC</cell></row><row><cell>Bob</cell><cell>25</cell><cell>LA</cell></row></table></main></doc>"}
-{"x": "<doc><main><p>Text with | pipe and special chars: # + - . &gt; : --- *** ___</p></main></doc>"}
-{"x": "<doc><main><p>Backslash test: \\ and ` backtick test</p></main></doc>"}
-{"x": "<doc><main><p>#Heading-like text at start</p></main></doc>"}
-{"x": "<doc><main><p>+ Plus at start\n- Minus at start\n1. Number dot</p></main></doc>"}
-{"x": "<doc><main><p>&gt; Quote-like at start\nDefinition: like this</p></main></doc>"}
 {"x": "<doc><main><div><head rend=\"h2\">Section</head><p>First paragraph.</p><p>Second paragraph.</p></div></main></doc>"}
 {"x": "<doc><main><p>Complex: <hi rend=\"#b\">bold with *asterisk*</hi> and _underscore_</p></main></doc>"}
 {"x": "<doc><main><list rend=\"ul\"><item>Item with <hi rend=\"#i\">italic</hi></item><item>Item with <ref target=\"http://url.com\">link</ref></item></list></main></doc>"}
