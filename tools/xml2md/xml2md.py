@@ -9,6 +9,7 @@ import re
 MAX_LIST_DEPTH = 5
 VERBOSITY_LEVEL = 2
 XML_FIELD_NAME = "x"
+MD_ONLY = False
 TOTAL_LINES = 0
 SUCCESSFUL_CONVERSIONS = 0
 
@@ -491,9 +492,19 @@ def process_single(item, line_num=None):
 
         markdown_content = xml_to_markdown(xml_content)
         if markdown_content:
-            item["md"] = "\n".join(markdown_content)
+            md_text = "\n".join(markdown_content)
+            if MD_ONLY:
+                item = {"md": md_text}
+            else:
+                item["md"] = md_text
             SUCCESSFUL_CONVERSIONS += 1
         else:
+            # in case no markdown was generated but without error,
+            # using empty string instead of null
+            if MD_ONLY:
+                item = {"md": ""}
+            else:
+                item["md"] = ""
             raise ConversionError("No markdown content generated", ConversionError.CRITICAL)
 
     except ET.ParseError as e:
@@ -507,15 +518,13 @@ def process_single(item, line_num=None):
         if e.severity <= VERBOSITY_LEVEL:
             print(f"{line_prefix}Conversion error: {e}", file=sys.stderr)
 
+    if "md" not in item:
+        if MD_ONLY:
+            item = {"md": None}
+        else:
+            item["md"] = None
+
     return item
-
-
-def process_buffer(buffer, start_line_num):
-    done = []
-    for i, item in enumerate(buffer):
-        line_num = start_line_num + i
-        done.append(process_single(item, line_num))
-    return done
 
 
 def main():
@@ -550,6 +559,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser("Convert trafilatura XML output to markdown")
     parser.add_argument("--max-list-depth", type=int, default=5, help="Maximum nesting depth for lists")
     parser.add_argument("--xml-field", type=str, default="x", help="Name of the JSON field containing XML content (default: x)")
+    parser.add_argument("--md-only", action="store_true", help="Output only the 'md' field instead of augmenting the original JSON")
     parser.add_argument("--verbosity", "-v", type=int, default=2,
                        help="Verbosity level (0=quiet, 1=critical only, 2=high+, 3=medium+, 4=all errors)")
     args = parser.parse_args()
@@ -557,6 +567,7 @@ if __name__ == "__main__":
     MAX_LIST_DEPTH = args.max_list_depth
     VERBOSITY_LEVEL = args.verbosity
     XML_FIELD_NAME = args.xml_field
+    MD_ONLY = args.md_only
 
     main()
 
