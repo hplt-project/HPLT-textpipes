@@ -112,6 +112,7 @@ class FastTextLangId:
                     text = json_line["t"];
                     if self.identity is None or "openlid" in self.identity:
                         text = self._preproccess_text(text);
+                    print(text)
                     prediction = self.model.predict(
                         text=text,
                         k=3,
@@ -161,7 +162,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    if args.model_path is None:
+    model = args.model_path;
+    if model is None:
         base = os.path.dirname(os.path.realpath(__file__));
         model = os.path.join(base, "args.identity" + ".bin");
     if not os.path.isfile(model):
@@ -174,7 +176,7 @@ if __name__ == "__main__":
         sys.exit(1);
         
     loaded_model = FastTextLangId(
-        model_path=args.model_path,
+        model_path=model,
         use_logging=args.use_logging,
         level_log=logging.getLevelName(args.log_level),
     )
