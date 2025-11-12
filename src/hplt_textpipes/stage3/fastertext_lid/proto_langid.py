@@ -33,7 +33,7 @@ class FastTextLangId:
         Init the FastText model.
 
         To download the model, run the following commands:
-        wget https://zenodo.org/records/15056559/files/openlid_v2_180325.bin
+        wget https://zenodo.org/records/17593102/files/openlid_v3_model.bin
 
         Expected usage (stdin jsonlines):
         python -m src.hplt_textpipes.stage2.fastertext_lid.proto_langid --model_path $MODEL_PATH < $YOUR_FILE
@@ -55,7 +55,7 @@ class FastTextLangId:
             raise TypeError(msg)
 
         self.logger.debug("Before: %s", text)
-        text = text.replace('\n', ' ').strip().lower()
+        text = text.strip().replace('\n', ' ').lower()
         text = regex.sub(SPACE_PATTERN, " ", text)
         text = regex.sub(NONWORD_REPLACE_PATTERN, "", text)
         self.logger.debug("After: %s", text)
@@ -67,7 +67,7 @@ class FastTextLangId:
 
         Example: "__label__eng_Latn" -> "eng_Latn"
         """
-        return [label.replace("__label__", "") for label in prediction[0]]
+        return [label.removeprefix("__label__") for label in prediction[0]]
 
     def _postprocess_predicted_probabilities(self, prediction: tuple) -> list[float]:
         """
