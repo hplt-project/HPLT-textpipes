@@ -112,7 +112,8 @@ class FastTextLangId:
                     text = json_line["t"];
                     if self.identity is None or "openlid" in self.identity:
                         text = self._preproccess_text(text);
-                    print(text)
+                    else:
+                        text = text.replace("\n", " ");
                     prediction = self.model.predict(
                         text=text,
                         k=3,
@@ -179,6 +180,7 @@ if __name__ == "__main__":
         model_path=model,
         use_logging=args.use_logging,
         level_log=logging.getLevelName(args.log_level),
+        identity = args.identity
     )
 
     loaded_model.predict_language_from_stdin_jsonlines()
