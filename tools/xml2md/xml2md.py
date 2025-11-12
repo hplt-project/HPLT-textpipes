@@ -2,7 +2,7 @@
 
 import argparse
 import sys
-import jsonlines
+import json
 import xml.etree.ElementTree as ET
 import re
 
@@ -518,32 +518,29 @@ def process_buffer(buffer, start_line_num):
     return done
 
 
-def main(buffer_size=1000):
+def main():
     global TOTAL_LINES, SUCCESSFUL_CONVERSIONS
 
-    with (jsonlines.Reader(sys.stdin) as reader,
-          jsonlines.Writer(sys.stdout) as writer):
+    line_num = 1
+    for line in sys.stdin:
+        line = line.strip()
+        if not line:
+            print(f"Line {line_num}: Empty line in input", file=sys.stderr)
+            print()
+            continue
 
-        buffer = []
-        line_num = 1
+        try:
+            item = json.loads(line)
+            processed = process_single(item, line_num)
+            print(json.dumps(processed, ensure_ascii=False))
 
-        for line in reader:
-            buffer.append(line)
+        except json.JSONDecodeError as e:
+            # Output the original line if JSON parsing fails
+            if VERBOSITY_LEVEL >= ConversionError.HIGH:
+                print(f"Line {line_num}: JSON decode error: {e}", file=sys.stderr)
+            print(line)
 
-            if len(buffer) >= buffer_size:
-                start_line = line_num - len(buffer) + 1
-                processed = process_buffer(buffer, start_line)
-                for item in processed:
-                    writer.write(item)
-                buffer = []
-
-            line_num += 1
-
-        if buffer:
-            start_line = line_num - len(buffer)
-            processed = process_buffer(buffer, start_line)
-            for item in processed:
-                writer.write(item)
+        line_num += 1
 
     if VERBOSITY_LEVEL >= ConversionError.CRITICAL:
         print(f"Conversion complete: {SUCCESSFUL_CONVERSIONS}/{TOTAL_LINES} lines successfully converted", file=sys.stderr)
@@ -551,7 +548,6 @@ def main(buffer_size=1000):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Convert trafilatura XML output to markdown")
-    parser.add_argument("--buffer-size", type=int, default=1000, help="Buffer size for processing lines")
     parser.add_argument("--max-list-depth", type=int, default=5, help="Maximum nesting depth for lists")
     parser.add_argument("--xml-field", type=str, default="x", help="Name of the JSON field containing XML content (default: x)")
     parser.add_argument("--verbosity", "-v", type=int, default=2,
@@ -562,5 +558,5 @@ if __name__ == "__main__":
     VERBOSITY_LEVEL = args.verbosity
     XML_FIELD_NAME = args.xml_field
 
-    main(args.buffer_size)
+    main()
 
