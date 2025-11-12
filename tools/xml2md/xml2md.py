@@ -71,7 +71,7 @@ def _apply_block_start_escaping(text):
     text = re.sub(r'^(\s*)(\d+)\.(\s)', r'\1\2\\.\3', text, flags=re.MULTILINE)
     #text = re.sub(r'^(\s*)\*(\s)', r'\1\\*\2', text, flags=re.MULTILINE)  # this is already escaped
     text = re.sub(r'^(\s*)>', r'\1\\>', text, flags=re.MULTILINE)
-    #text = re.sub(r'^([^:\n]+):', r'\1\\:', text, flags=re.MULTILINE)
+    text = re.sub(r'^(\s*):', r'\1\\:', text, flags=re.MULTILINE)
     text = re.sub(r'^(\s*)(-{3,}|\*{3,}|_{3,})(\s*)$', r'\1\\\2\3', text, flags=re.MULTILINE)
 
     return text
