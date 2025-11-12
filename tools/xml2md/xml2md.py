@@ -70,10 +70,32 @@ def _apply_block_start_escaping(text):
     text = re.sub(r'^(\s*)(\d+)\.(\s)', r'\1\2\\.\3', text, flags=re.MULTILINE)
     #text = re.sub(r'^(\s*)\*(\s)', r'\1\\*\2', text, flags=re.MULTILINE)  # this is already escaped
     text = re.sub(r'^(\s*)>', r'\1\\>', text, flags=re.MULTILINE)
-    text = re.sub(r'^([^:\n]+):', r'\1\\:', text, flags=re.MULTILINE)
+    #text = re.sub(r'^([^:\n]+):', r'\1\\:', text, flags=re.MULTILINE)
     text = re.sub(r'^(\s*)(-{3,}|\*{3,}|_{3,})(\s*)$', r'\1\\\2\3', text, flags=re.MULTILINE)
 
     return text
+
+
+def apply_paired_escaping(text):
+    """Escape paired markdown when the opening character is not followed by whitespace."""
+    if not text:
+        return text
+
+    result = text
+
+    # opening char, closing char, escaped opening, escaped closing
+    pairs = [
+        (r'\*', r'\*', r'\\*', r'\\*'),
+        (r'_', r'_', r'\\_', r'\\_'),
+        (r'~', r'~', r'\\~', r'\\~'),
+        (r'<', r'>', r'\\<', r'\\>'),
+    ]
+
+    for open_char, close_char, esc_open, esc_close in pairs:
+        pattern = f'({open_char})(?!\\s)(.*?)({close_char})'
+        result = re.sub(pattern, f'{esc_open}\\2{esc_close}', result)
+
+    return result
 
 
 def escape_markdown_text(text, context="inline"):
@@ -85,13 +107,14 @@ def escape_markdown_text(text, context="inline"):
     always_escape = [
         ('\\', '\\\\'),  # backslash is the first to be escaped
         ('`', '\\`'),    # backtick can break code formatting
-        ('_', '\\_'),    # underscores can create emphasis anywhere
-        ('*', '\\*'),    # asterisks can create emphasis anywhere
     ]
 
     result = text
     for char, escaped in always_escape:
         result = result.replace(char, escaped)
+
+    # apply paired escaping for markdown
+    result = apply_paired_escaping(result)
 
     if context == "block_start":
         result = _apply_block_start_escaping(result)
