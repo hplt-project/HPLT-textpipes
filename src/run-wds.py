@@ -1,10 +1,10 @@
 #REQUIRES:
 # python3.12 -m pip install orjson xxhash
-# git clone https://github.com/pablop16n/web-docs-scorer & cd web-docs-scorer & python3.12 -m pip install .
+# git clone https://github.com/pablop16n/web-docs-scorer && cd web-docs-scorer && git checkout 1.3.0 && python3.12 -m pip install .
 
 #RUN:
 # zstdcat [documents.jsonl.zst] | python3.12 run-wds.py
-# documents must contain at least the following metadata: lang, text and id
+# documents must contain at least the following metadata: lang, text and id (if lang is missing: pass it as an arg to this script; if id is missing: just use whatever string)
 # outputs the same documents in the input with their doc_scores 
 
 
@@ -58,7 +58,7 @@ def get_lang_wds(langcode_script):
 for line in sys.stdin:
     doc = orjson.loads(line)
     
-    #wds_seg_langs = list(map(get_lang_wds, doc["seg_langs"])) # --> USE THIS IF seg_langs IS IN THE DOCUMENT, otherwhise use the code below
+    #wds_seg_langs = list(map(get_lang_wds, doc["seg_langs"])) # --> USE THIS IF seg_langs IS IN THE DOCUMENT, otherwhise use the two lines below
     segments  = doc["text"].split("\n")
     wds_seg_langs = [get_lang_wds(doc["lang"][0])] * len(segments)
 
