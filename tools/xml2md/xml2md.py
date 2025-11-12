@@ -13,6 +13,21 @@ MD_ONLY = False
 TOTAL_LINES = 0
 SUCCESSFUL_CONVERSIONS = 0
 
+# Pre-compiled regex patterns for better performance
+BLOCK_START_HASH = re.compile(r'^(\s*)#', re.MULTILINE)
+BLOCK_START_PLUS = re.compile(r'^(\s*)\+(\s)', re.MULTILINE)
+BLOCK_START_MINUS = re.compile(r'^(\s*)-(\s)', re.MULTILINE)
+BLOCK_START_NUMBERED = re.compile(r'^(\s*)(\d+)\.(\s)', re.MULTILINE)
+BLOCK_START_GT = re.compile(r'^(\s*)>', re.MULTILINE)
+BLOCK_START_COLON = re.compile(r'^(\s*):', re.MULTILINE)
+BLOCK_START_HR = re.compile(r'^(\s*)(-{3,}|\*{3,}|_{3,})(\s*)$', re.MULTILINE)
+
+# Pre-compiled patterns for paired escaping
+PAIRED_ASTERISK = re.compile(r'(\*)(?!\s)(.*?)(\*)')
+PAIRED_UNDERSCORE = re.compile(r'(_)(?!\s)(.*?)(_)')
+PAIRED_TILDE = re.compile(r'(~)(?!\s)(.*?)(~)')
+PAIRED_ANGLE = re.compile(r'(<)(?!\s)(.*?)(>)')
+
 
 class ConversionError(Exception):
     """Custom exception for conversion errors with severity levels."""
@@ -65,14 +80,14 @@ def _apply_block_start_escaping(text):
     # start of block/line - we need to be careful about headings (#), items (+, -, *), blockquotes (>), horizontal rules (---)
     # maybe definitions (colon) in extended syntax
 
-    text = re.sub(r'^(\s*)#', r'\1\\#', text, flags=re.MULTILINE)
-    text = re.sub(r'^(\s*)\+(\s)', r'\1\\+\2', text, flags=re.MULTILINE)
-    text = re.sub(r'^(\s*)-(\s)', r'\1\\-\2', text, flags=re.MULTILINE)
-    text = re.sub(r'^(\s*)(\d+)\.(\s)', r'\1\2\\.\3', text, flags=re.MULTILINE)
+    text = BLOCK_START_HASH.sub(r'\1\\#', text)
+    text = BLOCK_START_PLUS.sub(r'\1\\+\2', text)
+    text = BLOCK_START_MINUS.sub(r'\1\\-\2', text)
+    text = BLOCK_START_NUMBERED.sub(r'\1\2\\.\3', text)
     #text = re.sub(r'^(\s*)\*(\s)', r'\1\\*\2', text, flags=re.MULTILINE)  # this is already escaped
-    text = re.sub(r'^(\s*)>', r'\1\\>', text, flags=re.MULTILINE)
-    text = re.sub(r'^(\s*):', r'\1\\:', text, flags=re.MULTILINE)
-    text = re.sub(r'^(\s*)(-{3,}|\*{3,}|_{3,})(\s*)$', r'\1\\\2\3', text, flags=re.MULTILINE)
+    text = BLOCK_START_GT.sub(r'\1\\>', text)
+    text = BLOCK_START_COLON.sub(r'\1\\:', text)
+    text = BLOCK_START_HR.sub(r'\1\\\2\3', text)
 
     return text
 
@@ -84,17 +99,11 @@ def apply_paired_escaping(text):
 
     result = text
 
-    # opening char, closing char, escaped opening, escaped closing
-    pairs = [
-        (r'\*', r'\*', r'\\*', r'\\*'),
-        (r'_', r'_', r'\\_', r'\\_'),
-        (r'~', r'~', r'\\~', r'\\~'),
-        (r'<', r'>', r'\\<', r'\\>'),
-    ]
-
-    for open_char, close_char, esc_open, esc_close in pairs:
-        pattern = f'({open_char})(?!\\s)(.*?)({close_char})'
-        result = re.sub(pattern, f'{esc_open}\\2{esc_close}', result)
+    # Use pre-compiled regex patterns
+    result = PAIRED_ASTERISK.sub(r'\\*\2\\*', result)
+    result = PAIRED_UNDERSCORE.sub(r'\\_\2\\_', result)
+    result = PAIRED_TILDE.sub(r'\\~\2\\~', result)
+    result = PAIRED_ANGLE.sub(r'\\<\2\\>', result)
 
     return result
 
