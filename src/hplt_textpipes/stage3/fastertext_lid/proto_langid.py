@@ -33,7 +33,7 @@ class FastTextLangId:
         Init the FastText model.
 
         To download the model, run the following commands:
-        wget https://zenodo.org/records/17593102/files/openlid_v3_model.bin
+        wget https://zenodo.org/records/17601701/files/openlid-v3.bin
 
         Expected usage (stdin jsonlines):
         python -m src.hplt_textpipes.stage2.fastertext_lid.proto_langid --model_path $MODEL_PATH < $YOUR_FILE
