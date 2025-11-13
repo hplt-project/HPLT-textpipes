@@ -485,33 +485,37 @@ def xml_to_markdown(xml_string):
     return process_element(main_elem)
 
 
-def process_single(item, line_num=None):
+def process_single(item, line_num=None, raw = False):
     global TOTAL_LINES, SUCCESSFUL_CONVERSIONS
 
     TOTAL_LINES += 1
     line_prefix = f"Line {line_num}: " if line_num else ""
 
     try:
-        if XML_FIELD_NAME not in item:
-            raise ConversionError(f"No '{XML_FIELD_NAME}' field in item, skipping conversion", ConversionError.MEDIUM)
+        if not raw:
+            if XML_FIELD_NAME not in item:
+                raise ConversionError(f"No '{XML_FIELD_NAME}' field in item, skipping conversion", ConversionError.MEDIUM)
 
-        xml_content = item[XML_FIELD_NAME]
-        if xml_content is None:
-            raise ConversionError(f"'{XML_FIELD_NAME}' field is null, skipping conversion", ConversionError.MEDIUM)
+            xml_content = item[XML_FIELD_NAME]
+            if xml_content is None:
+                raise ConversionError(f"'{XML_FIELD_NAME}' field is null, skipping conversion", ConversionError.MEDIUM)
+        else:
+            xml_content = item;
 
+        if raw: item = None;
         markdown_content = xml_to_markdown(xml_content)
         if markdown_content:
             md_text = "\n".join(markdown_content)
-            if MD_ONLY:
-                item = {"md": md_text}
+            if MD_ONLY or raw:
+                item = md_text if raw else {"md": md_text}
             else:
                 item["md"] = md_text
             SUCCESSFUL_CONVERSIONS += 1
         else:
             # in case no markdown was generated but without error,
             # using empty string instead of null
-            if MD_ONLY:
-                item = {"md": ""}
+            if MD_ONLY or raw:
+                item = "" if raw else {"md": ""}
             else:
                 item["md"] = ""
             raise ConversionError("No markdown content generated", ConversionError.CRITICAL)
@@ -527,11 +531,11 @@ def process_single(item, line_num=None):
         if e.severity <= VERBOSITY_LEVEL:
             print(f"{line_prefix}Conversion error: {e}", file=sys.stderr)
 
-    if "md" not in item:
+    if not raw and "md" not in item:
         if MD_ONLY:
-            item = {"md": None}
+            item = {"md": None};
         else:
-            item["md"] = None
+            item["md"] = None;
 
     return item
 

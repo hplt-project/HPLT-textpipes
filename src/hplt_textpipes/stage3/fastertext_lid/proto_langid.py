@@ -14,9 +14,9 @@ import os
 import sys;
 from pathlib import Path;
 
-from hplt_textpipes.stage3.fastertext_lid.basic_log import langid_logger
-from hplt_textpipes.stage3.fastertext_lid.patterns import NONWORD_REPLACE_PATTERN, SPACE_PATTERN
-
+from hplt_textpipes.stage2.fastertext_lid.basic_log import langid_logger
+from hplt_textpipes.stage2.fastertext_lid.patterns import NONWORD_REPLACE_PATTERN, SPACE_PATTERN
+from hplt_textpipes.stage3.xml2md import process_single;
 
 class FastTextLangId:
     """The FastText language identification model."""
@@ -79,7 +79,7 @@ class FastTextLangId:
 
         return rounded_probs.tolist()
 
-    def predict_language_from_stdin_jsonlines(self) -> None:
+    def predict_language_from_stdin_jsonlines(self, enrich = False) -> None:
         """
         Read from stdin jsonlines.
 
@@ -93,7 +93,7 @@ class FastTextLangId:
 
         """
         with fileinput.input(files=("-",), encoding="utf-8") as f:
-            for fileinput_line in f:
+            for i, fileinput_line in enumerate(f):
                 self.logger.debug("Read fileinput line: %s", fileinput_line)
                 # load json line
                 json_line = ujson.loads(fileinput_line)
@@ -101,11 +101,15 @@ class FastTextLangId:
 
                 if json_line["t"] is None:
                     self.logger.debug("Case: text is None.")
-                    print(ujson.dumps({"lang": None}))
+                    result = {"lang": None};
+                    if enrich: result["md"] = None;
+                    print(ujson.dumps(result))
 
                 elif len(json_line["t"]) == 0:
                     self.logger.debug("Case: text is empty.")
-                    print(ujson.dumps({"lang": None}))
+                    result = {"lang": None};
+                    if enrich: result["md"] = None;
+                    print(ujson.dumps(result))
 
                 else:
                     self.logger.debug("Case: text is ok.")
@@ -125,6 +129,18 @@ class FastTextLangId:
                                "prob": self._postprocess_predicted_probabilities(prediction) };
                     if self.identity is not None:
                         result = {self.identity: result};
+
+                    if enrich:
+                        md = None;
+                        try:
+                            xml = json_line["x"];
+                            md = process_single(xml, line_num = i, raw = True);
+                        except Exception as error:
+                            print("proto_langid.py: MD extraction failure, line #{} ({})."
+                                  "".format(ierror),
+                                  file = sys.stderr, flush = True);
+
+                        result["md"] = md;
                     print(ujson.dumps(result));
 
         return None
@@ -134,6 +150,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Predict language using FastText model."
     )
+    parser.add_argument("--enrich", action = "store_true",
+                        help = "Add additional annotations: MD, ID");
     parser.add_argument(
         "--model_path",
         type=str,
@@ -183,4 +201,4 @@ if __name__ == "__main__":
         identity = args.identity
     )
 
-    loaded_model.predict_language_from_stdin_jsonlines()
+    loaded_model.predict_language_from_stdin_jsonlines(args.enrich);
