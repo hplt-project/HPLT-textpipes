@@ -1,4 +1,6 @@
 #!/usr/bin/bash
+# On LUMI run with:
+# sbatch --partition small --cpus-per-task=32 --mem-per-cpu=1750M --time=72:00:00 -A project_465001890 download_crawl_rclone.sh warcpaths/CC-MAIN-2025-26.lst
 flist=$1
 
 set -euo pipefail
