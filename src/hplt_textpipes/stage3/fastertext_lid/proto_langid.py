@@ -134,7 +134,8 @@ class FastTextLangId:
                         md = None;
                         try:
                             xml = json_line["x"];
-                            md = process_single(xml, line_num = i, raw = True);
+                            if xml is not None:
+                                md = process_single(xml, line_num = i, raw = True);
                         except Exception as error:
                             print("proto_langid.py: MD extraction failure, line #{} ({})."
                                   "".format(i, error),
