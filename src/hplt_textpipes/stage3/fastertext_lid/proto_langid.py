@@ -102,12 +102,16 @@ class FastTextLangId:
                 if json_line["t"] is None:
                     self.logger.debug("Case: text is None.")
                     result = {"lang": None};
+                    if self.identity is not None:
+                        result = {self.identity: result};
                     if enrich: result["md"] = None;
                     print(ujson.dumps(result))
 
                 elif len(json_line["t"]) == 0:
                     self.logger.debug("Case: text is empty.")
                     result = {"lang": None};
+                    if self.identity is not None:
+                        result = {self.identity: result};
                     if enrich: result["md"] = None;
                     print(ujson.dumps(result))
 
