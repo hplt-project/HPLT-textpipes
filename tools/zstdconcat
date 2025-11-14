@@ -1,0 +1,33 @@
+#!/bin/bash
+
+if [ -z "${1}" -o ! -d "${1}" ]; then
+  echo "zstdconcat: missing or invalid directory argument; exit." >&2;
+  exit 1;
+fi
+
+input=${1};
+
+prefix=/tmp/.pipe.${USER}.${$};
+declare -a pipes;
+i=3;
+for file in ${input}/*.zst; do
+  pipes[${i}]=${prefix}.${i};
+  [ -e ${pipes[${i}]} ] && /bin/rm -f ${pipes[${i}]}
+  mkfifo ${pipes[${i}]};
+  zstdcat ${file} > ${pipes[${i}]} &
+  eval "exec ${i}< ${pipes[${i}]}";
+  i=$[${i} + 1];
+done
+n=$[${i} - 1];
+while :; do
+  i=3;
+  while [ ${i} -le ${n} ]; do
+    eval "read line <&${i}";
+    [ -z "${line}" ] && break 2;
+    if [ ${i} -lt ${n} ]; then echo -n "${line%\}},";
+    else echo "${line},"; fi
+    i=$[${i} + 1];
+  done
+done
+
+/bin/rm -f ${pipes[@]};
