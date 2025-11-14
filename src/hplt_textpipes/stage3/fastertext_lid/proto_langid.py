@@ -137,7 +137,7 @@ class FastTextLangId:
                             md = process_single(xml, line_num = i, raw = True);
                         except Exception as error:
                             print("proto_langid.py: MD extraction failure, line #{} ({})."
-                                  "".format(ierror),
+                                  "".format(i, error),
                                   file = sys.stderr, flush = True);
 
                         result["md"] = md;
