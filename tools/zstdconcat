@@ -22,10 +22,12 @@ n=$[${i} - 1];
 while :; do
   i=3;
   while [ ${i} -le ${n} ]; do
-    eval "read line <&${i}";
+    read -r -u ${i} line;
     [ -z "${line}" ] && break 2;
-    if [ ${i} -lt ${n} ]; then echo -n "${line%\}},";
-    else echo "${line},"; fi
+    if [ ${n} -gt 3 -a ${i} -eq 3 ]; then echo -n "${line%\}},";
+    elif [ ${n} -gt 3 -a ${i} -lt ${n} ]; then line="${line#\{}"; echo -n "${line%\}},";
+    elif [ ${n} -gt 3  ]; then echo "${line#\{}";
+    else echo "${line}"; fi
     i=$[${i} + 1];
   done
 done
