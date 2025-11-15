@@ -51,7 +51,7 @@ run_lid_parallel() {
     # making it too small will increase extra costs on script initialization (e.e. weights loading for langid),
     # making it too large will require buffering too much outputs in parallel due to --keep-order requirement.
     time_start=$(date +%s.%N)
-    parallel --halt now,fail=1 --block $BLOCKSIZE -j "${1}" --pipe --keep-order  \
+    time -p parallel --halt now,fail=1 --block $BLOCKSIZE -j "${1}" --pipe --keep-order  \
             "python -m hplt_textpipes.stage3.fastertext_lid.proto_langid --identity ${2}"
     time_end=$(date +%s.%N)
     printf "%.3fs: finished %s in %s processes\n" "$(echo "$time_end - $time_start" | bc)" "${2}" "${1}" 1>&2
@@ -59,7 +59,7 @@ run_lid_parallel() {
 
 run_xml2md_parallel() {
     time_start=$(date +%s.%N)
-    parallel --halt now,fail=1 --block $BLOCKSIZE -j "${1}" --pipe --keep-order  \
+    time -p parallel --halt now,fail=1 --block $BLOCKSIZE -j "${1}" --pipe --keep-order  \
             "python -m hplt_textpipes.stage3.xml2md --md-only --verbosity=0"
     time_end=$(date +%s.%N)
     printf "%.3fs: finished xml2md in %s processes\n" "$(echo "$time_end - $time_start" | bc)" "${1}" 1>&2
