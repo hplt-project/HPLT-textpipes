@@ -1,13 +1,10 @@
 #!/bin/bash
 set -euo pipefail
 
-if [ "$#" -ne 2 ]; then
-    echo "Usage: $0 <input_dir> <output_dir>"
-    exit 1
-fi
-
 INPUT_DIR=$1
 OUTPUT_DIR=$2
+#NJOBS=`nproc --all`
+NJOBS=$3
 
 # Create a temporary directory for intermediate files
 TMP_DIR=$(mktemp -d)
@@ -35,9 +32,7 @@ mkfifo "$TMP_DIR/pipe_md"
 #OLJOBS=3
 #MDJOBS=1
 
-NJOBS=`nproc --all`
-NJOBS=$(($NJOBS - 2))  # leave some threads for rclone, zstdcat, zstd steps in the pipeline
-NJOBS=1
+#NJOBS=$(($NJOBS - 2))  # leave some threads for rclone, zstdcat, zstd steps in the pipeline
 GLJOBS=$(( (NJOBS + 1) / 2 )) # (3N+3+2N+4)/6 = (5N+7)/6 = 5/6 N + 7/6 < N <=> N > 7
 OLJOBS=$(( (NJOBS + 2) / 3 ))
 MDJOBS=$(($NJOBS - $OLJOBS - $GLJOBS)); (( MDJOBS < 1 )) && MDJOBS=1
