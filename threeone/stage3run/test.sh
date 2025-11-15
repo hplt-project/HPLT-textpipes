@@ -79,7 +79,7 @@ PID_L2=$!
 run_lid_parallel $OLJOBS openlid-v3 <"$TMP_DIR/pipe_l1" >"$FL1"  &
 PID_L1=$!
 
-python ../src/hplt_textpipes/utils/jsonl_muxdemux.py \
+python -m hplt_textpipes.utils.jsonl_muxdemux \
     "$INPUT_DIR/text.zst" \
     -- \
     "$OUTPUT_DIR/xml.zst" xml=x \
@@ -92,7 +92,7 @@ python ../src/hplt_textpipes/utils/jsonl_muxdemux.py \
 # Wait for background lid processes to finish
 wait $PID_L2 $PID_L1
 
-python ../src/hplt_textpipes/utils/jsonl_muxdemux.py \
+python -m hplt_textpipes.utils.jsonl_muxdemux \
     <(zstdcat "$INPUT_DIR/metadata.zst" | python -u -m hplt_textpipes.stage3.add_id -) \
     <(zstdcat "$INPUT_DIR/lang.zst" | jq -c '{"openlid-v2":.}') \
     "$FHTMLMETA" \
