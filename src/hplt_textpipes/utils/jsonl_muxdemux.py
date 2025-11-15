@@ -3,11 +3,10 @@
 Multiplexes-demultiplexes a set of line-parallel jsonlines files into multiple output files.
 """
 import sys
-import json
+import orjson
 import argparse
 from contextlib import ExitStack
 import smart_open
-from tqdm import tqdm
 
 
 def _parse_spec(fields_str: str) -> dict:
@@ -55,26 +54,24 @@ def process_files(input_files: list, output_map: dict):
     """Reads, processes, and writes the jsonl files."""
     with ExitStack() as stack:
         in_handles = [
-            sys.stdin if f == '-' else stack.enter_context(smart_open.open(f, 'rt', encoding='utf-8'))
+            sys.stdin.buffer if f == '-' else stack.enter_context(smart_open.open(f, 'rb'))
             for f in input_files
         ]
         out_handles = {
-            path: sys.stdout if path == '-' else stack.enter_context(smart_open.open(path, 'wt', encoding='utf-8'))
+            path: sys.stdout.buffer if path == '-' else stack.enter_context(smart_open.open(path, 'wb'))
             for path in output_map
         }
-
-        progress_desc = ','.join(input_files)
 
         for lines in zip(*in_handles):
             merged_record = {}
             for line in lines:
-                record = json.loads(line)
+                record = orjson.loads(line)
                 if isinstance(record, dict):
                     merged_record.update(record)
 
             for path, spec in output_map.items():
                 output_record = _build_output_record(merged_record, spec)
-                out_handles[path].write(json.dumps(output_record, ensure_ascii=False) + '\n')
+                out_handles[path].write(orjson.dumps(output_record, option=orjson.OPT_APPEND_NEWLINE))
 
 
 def main():
