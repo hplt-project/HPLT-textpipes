@@ -77,6 +77,7 @@ def _timed_iterator(handle, pbar, ema_list, ema_idx, alpha, original_desc, minit
     while True:
         start = time.monotonic()
         line = handle.readline()
+        record = orjson.loads(line)
         read_duration = time.monotonic() - start
 
         if not line:
@@ -85,8 +86,6 @@ def _timed_iterator(handle, pbar, ema_list, ema_idx, alpha, original_desc, minit
                 avg_duration = batch_duration / count
                 _update_progress(pbar, ema_list, ema_idx, avg_duration, total_duration, alpha, original_desc, n=count)
             return
-
-        yield line
 
         batch_duration += read_duration
         total_duration += read_duration
@@ -97,6 +96,8 @@ def _timed_iterator(handle, pbar, ema_list, ema_idx, alpha, original_desc, minit
             # Reset batch counters
             count = 0
             batch_duration = 0.0
+
+        yield record
 
 
 def process_files(input_files: list, output_specs: list):
@@ -155,8 +156,7 @@ def process_files(input_files: list, output_specs: list):
             total_output_durations = [0.0] * num_outputs
             for lines in zip(*timed_in_iters):
                 merged_record = {}
-                for line in lines:
-                    record = orjson.loads(line)
+                for record in lines:
                     if isinstance(record, dict):
                         merged_record.update(record)
 
