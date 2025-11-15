@@ -77,7 +77,7 @@ def _timed_iterator(handle, pbar, ema_list, ema_idx, alpha, original_desc, minit
     while True:
         start = time.monotonic()
         line = handle.readline()
-        record = orjson.loads(line)
+        record = orjson.loads(line) if line else None
         read_duration = time.monotonic() - start
 
         if not line:
