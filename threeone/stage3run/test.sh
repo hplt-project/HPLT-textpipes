@@ -45,24 +45,28 @@ run_lid_parallel() {
     # --block issues one task per block of input lines of roughly this size, but without breaking lines;
     # making it too small will increase extra costs on script initialization (e.e. weights loading for langid),
     # making it too large will require buffering too much outputs in parallel due to --keep-order requirement.
+    printf "started %s in %s processes\n" "${2}" "${1}" 1>&2
     time_start=$(date +%s.%N)
-    time -p parallel --halt now,fail=1 --block $BLOCKSIZE -j "${1}" --pipe --keep-order  \
-            "python -m hplt_textpipes.stage3.fastertext_lid.proto_langid --identity ${2}"
+    cat
+#    time -p parallel --halt now,fail=1 --block $BLOCKSIZE -j "${1}" --pipe --keep-order  \
+#            "python -m hplt_textpipes.stage3.fastertext_lid.proto_langid --identity ${2}"
     time_end=$(date +%s.%N)
     printf "%.3fs: finished %s in %s processes\n" "$(echo "$time_end - $time_start" | bc)" "${2}" "${1}" 1>&2
 }
 
 run_xml2md_parallel() {
+    printf "started xml2md in max %s processes\n" "${1}" 1>&2
     time_start=$(date +%s.%N)
-    time -p parallel --halt now,fail=1 --block $BLOCKSIZE -j "${1}" --pipe --keep-order  \
-            "python -m hplt_textpipes.stage3.xml2md --md-only --verbosity=0"
+    cat
+#    time -p parallel --halt now,fail=1 --block $BLOCKSIZE -j "${1}" --pipe --keep-order  \
+#            "python -m hplt_textpipes.stage3.xml2md --md-only --verbosity=0"
     time_end=$(date +%s.%N)
-    printf "%.3fs: finished xml2md in %s processes\n" "$(echo "$time_end - $time_start" | bc)" "${1}" 1>&2
+    printf "%.3fs: finished xml2md in max %s processes\n" "$(echo "$time_end - $time_start" | bc)" "${1}" 1>&2
 
 }
 
-#time zstdcat "$INPUT_DIR/text.zst" | run_lid_parallel $GLJOBS glotlid-v3 >/dev/null
-#time zstdcat "$INPUT_DIR/text.zst" | run_lid_parallel $GLJOBS glotlid-v3 >"$TMP_DIR/l2"
+#time -p zstdcat "$INPUT_DIR/text.zst" | run_lid_parallel $GLJOBS glotlid-v3 >/dev/null
+#time -p zstdcat "$INPUT_DIR/text.zst" | run_lid_parallel $GLJOBS glotlid-v3 >"$TMP_DIR/l2"
 
 # Start background processes to read from named pipes
 run_xml2md_parallel $MDJOBS <"$TMP_DIR/pipe_md" | zstd >"$OUTPUT_DIR/md.zst"  &
@@ -74,6 +78,7 @@ PID_L2=$!
 run_lid_parallel $OLJOBS openlid-v3 <"$TMP_DIR/pipe_l1" >"$FL1"  &
 PID_L1=$!
 
+echo $(date +"%T") starting jsonl_muxdemux 1
 python -m hplt_textpipes.utils.jsonl_muxdemux \
     "$INPUT_DIR/text.zst" \
     -- \
@@ -85,8 +90,11 @@ python -m hplt_textpipes.utils.jsonl_muxdemux \
     "$TMP_DIR/pipe_l1" t
 
 # Wait for background lid processes to finish
+
+echo $(date +"%T") waiting for LIDs to finish
 wait $PID_L2 $PID_L1
 
+echo $(date +"%T") starting jsonl_muxdemux 2
 python -m hplt_textpipes.utils.jsonl_muxdemux \
     <(zstdcat "$INPUT_DIR/metadata.zst" | python -u -m hplt_textpipes.stage3.add_id -) \
     <(zstdcat "$INPUT_DIR/lang.zst" | jq -c '{"openlid-v2":.}') \
@@ -97,4 +105,7 @@ python -m hplt_textpipes.utils.jsonl_muxdemux \
     "$OUTPUT_DIR/metadata.zst" '*'
 
 # Wait for background xml2md processes to finish
+
+echo $(date +"%T") waiting for xml2md to finish
 wait $PID_MD
+echo $(date +"%T") "all done"
