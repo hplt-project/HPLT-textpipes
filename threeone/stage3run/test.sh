@@ -47,7 +47,9 @@ run_lid_parallel() {
     # making it too large will require buffering too much outputs in parallel due to --keep-order requirement.
     printf "started %s in %s processes\n" "${2}" "${1}" 1>&2
     time_start=$(date +%s.%N)
-    cat
+#    cat
+    jq -c '{lang:["cmn_Hans","cmn_Hant","jpn_Jpan"],prob:[0.9885,0.0115,0]}'
+
 #    time -p parallel --halt now,fail=1 --block $BLOCKSIZE -j "${1}" --pipe --keep-order  \
 #            "python -m hplt_textpipes.stage3.fastertext_lid.proto_langid --identity ${2}"
     time_end=$(date +%s.%N)
@@ -57,7 +59,8 @@ run_lid_parallel() {
 run_xml2md_parallel() {
     printf "started xml2md in max %s processes\n" "${1}" 1>&2
     time_start=$(date +%s.%N)
-    cat
+#    cat
+    jq -c '{md: "# pásek Dakine Rivets black\n\nDostupnost: Skladem"}'
 #    time -p parallel --halt now,fail=1 --block $BLOCKSIZE -j "${1}" --pipe --keep-order  \
 #            "python -m hplt_textpipes.stage3.xml2md --md-only --verbosity=0"
     time_end=$(date +%s.%N)
@@ -77,6 +80,19 @@ PID_L2=$!
 
 run_lid_parallel $OLJOBS openlid-v3 <"$TMP_DIR/pipe_l1" >"$FL1"  &
 PID_L1=$!
+
+echo $(date +"%T") starting jsonl_muxdemux 1
+python -m hplt_textpipes.utils.jsonl_muxdemux \
+    "$INPUT_DIR/text.zst" \
+    -- \
+    "/dev/null" xml=x \
+    "/dev/null" text=t \
+    "/dev/null" x \
+    "/dev/null" htmllang,metalang,tagfilter  \
+    "/dev/null" t \
+    "/dev/null" t
+exit
+
 
 echo $(date +"%T") starting jsonl_muxdemux 1
 python -m hplt_textpipes.utils.jsonl_muxdemux \
