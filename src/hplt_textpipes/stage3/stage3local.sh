@@ -26,7 +26,7 @@ check_outputs() {
 
 # Cleanup trap to remove the temporary directory on exit
 cleanup() {
-    echo "Cleaning up temporary directory: $TMP_DIR"
+    echo "Cleaning up temporary directory: $TMP_DIR" 1>&2
     rm -rf "$TMP_DIR"
 }
 trap cleanup EXIT
@@ -90,7 +90,7 @@ PID_L2=$!
 run_lid_parallel $OLJOBS openlid-v3 <"$TMP_DIR/pipe_l1" >"$FL1"  &
 PID_L1=$!
 
-echo $(date +"%T") starting jsonl_muxdemux 1
+echo $(date +"%T") starting jsonl_muxdemux 1 1>&2
 python -m hplt_textpipes.utils.jsonl_muxdemux \
     <(zstdcat "$INDIR/text.zst") \
     -- \
@@ -103,10 +103,10 @@ python -m hplt_textpipes.utils.jsonl_muxdemux \
 
 # Wait for background lid processes to finish
 
-echo $(date +"%T") waiting for LIDs to finish
+echo $(date +"%T") waiting for LIDs to finish 1>&2
 wait $PID_L2 $PID_L1
 
-echo $(date +"%T") starting jsonl_muxdemux 2
+echo $(date +"%T") starting jsonl_muxdemux 2 1>&2
 python -m hplt_textpipes.utils.jsonl_muxdemux \
     <(zstdcat "$INDIR/metadata.zst" | python -m hplt_textpipes.stage3.add_id -) \
     <(zstdcat "$INDIR/lang.zst" | jq -c '{"openlid-v2":.}') \
@@ -118,8 +118,9 @@ python -m hplt_textpipes.utils.jsonl_muxdemux \
 
 # Wait for background xml2md processes to finish
 
-echo $(date +"%T") waiting for xml2md to finish
+echo $(date +"%T") waiting for xml2md to finish 1>&2
 wait $PID_MD
-echo $(date +"%T") "all done"
+echo $(date +"%T") "checking outputs" 1>&2
 
 check_outputs
+echo $(date +"%T") "all done" 1>&2
