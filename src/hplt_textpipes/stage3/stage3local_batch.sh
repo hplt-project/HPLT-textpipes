@@ -7,7 +7,7 @@ process() {
     local x=$1
     local NJOBS=$2
     local INDIR=${x%/*}
-    local OUTDIR=$(getoutdir "${x}" "${BASEOUTDIR}")
+    local OUTDIR=$(stage3getoutdir.sh "${x}" "${BASEOUTDIR}")
     echo "$(date) Processing ${INDIR} in ${NJOBS} jobs, writing to ${OUTDIR}" >&2 # forward everything to stderr to interleave correctly with error messages from stage3local.sh
     bash "$LOCALSCRIPT" "${INDIR}" "${OUTDIR}" "${NJOBS}"
     c="$?"
