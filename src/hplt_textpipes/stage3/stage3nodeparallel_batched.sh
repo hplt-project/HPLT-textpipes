@@ -8,9 +8,17 @@ LOCALSCRIPT=$5
 LOGDIR=logs_$(date +%Y-%m-%d-%H-%M-%S)
 mkdir $LOGDIR
 
+getoutdir() {
+    local FIN=$1
+    local OUTDIR=$2
+    echo $FIN | sed -r "s@^.*/([^/]+)/html/([0-9]+)/text.zst@${OUTDIR%/}/\1/pool/\2@"
+}
+
+export -f getoutdir
+
 filter_done() {
-  while read -r line; do
-    fdone=`echo $line | sed -r "s@[0-9]+ +[^:]+:(.*)/text.zst@${OUTDIR}/\1/.done@"`
+  while read -r FIN; do
+    fdone=$(getoutdir "${FIN}" "${OUTDIR}")/.done
     if [ ! -f "$fdone" ]; then
       echo "$line"
     else
