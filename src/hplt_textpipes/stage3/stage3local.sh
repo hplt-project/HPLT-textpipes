@@ -92,7 +92,7 @@ PID_L1=$!
 
 echo $(date +"%T") starting jsonl_muxdemux 1 1>&2
 python -m hplt_textpipes.utils.jsonl_muxdemux \
-    <(zstdcat "$INDIR/text.zst") \
+    <(rclone cat "$INDIR/text.zst" | zstdcat) \
     -- \
     >(compress "$OUTDIR/xml.zst") xml=x \
     >(compress "$OUTDIR/text.zst") text=t \
@@ -108,8 +108,8 @@ wait $PID_L2 $PID_L1
 
 echo $(date +"%T") starting jsonl_muxdemux 2 1>&2
 python -m hplt_textpipes.utils.jsonl_muxdemux \
-    <(zstdcat "$INDIR/metadata.zst" | python -m hplt_textpipes.stage3.add_id -) \
-    <(zstdcat "$INDIR/lang.zst" | jq -c '{"openlid-v2":.}') \
+    <(rclone cat "$INDIR/metadata.zst" | zstdcat | python -m hplt_textpipes.stage3.add_id -) \
+    <(rclone cat  "$INDIR/lang.zst" | zstdcat | jq -c '{"openlid-v2":.}') \
     "$FHTMLMETA" \
     "$FL2" \
     "$FL1" \
