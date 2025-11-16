@@ -1,75 +1,125 @@
-#!/usr/bin/bash
-FIN=$1
-OUTDIR=$2
+#!/bin/bash
 set -euo pipefail
-mkdir -p $OUTDIR
 
-prepare_inputs() {
-  if [[ $FIN =~ ^lumio: ]]; then
-    S3FIN=`echo $FIN | sed 's@lumio:@s3://@'`
-    s3cmd get `echo $S3FIN | sed 's@html.zst@metadata.zst@'` ${OUTDIR}/ --continue  # continue downloading in case it failed last time
-  else
-    rclone copy `echo $FIN | sed 's@html.zst@metadata.zst@'` ${OUTDIR}/
-  fi
-}
+INDIR=$1
+OUTDIR=$2
+NJOBS=$3
 
 check_outputs() {
-  # check the number of lines
-  C=`paste <(zstdcat ${OUTDIR}/text.zst|wc -l) <(zstdcat ${OUTDIR}/lang.zst|wc -l) <(zstdcat ${OUTDIR}/metadata.zst|wc -l)`
-  read t l m  <<< "$C"
-  if [ "$t" != "$m" ]; then
-    echo "ERROR: Number of lines mismatch: $t in ${OUTDIR}/text.zst and $m in ${OUTDIR}/metadata.zst" 1>&2
-    exit 1
-  fi
+    # check the number of lines
+    fallowed="${INDIR}/allowed.zst"
+    if rclone lsf "$fallowed"  &>/dev/null; then
+      x=$(rclone cat "$fallowed" | zstdcat | jq -c 'select(.allowed==true)'|wc)
+    else
+      x=$(rclone cat "${INDIR}/metadata.zst" | zstdcat | wc -l)
+    fi
 
-  if [ "$l" != "$m" ]; then
-    echo "ERROR: Number of lines mismatch: $l in ${OUTDIR}/lang.zst and $m in ${OUTDIR}/metadata.zst" 1>&2
-    exit 1
-  fi
-
-  echo $t $l $m >${OUTDIR}/.done
-  #rm $FIN
+    C=`paste <(zstdcat ${OUTDIR}/text.zst|wc -l) <(zstdcat ${OUTDIR}/xml.zst|wc -l) <(zstdcat ${OUTDIR}/md.zst|wc -l) <(zstdcat ${OUTDIR}/metadata.zst|wc -l)`
+    read a b c d  <<< "$C"
+    if [[ $x == "$a" && $a == "$b" && $b == "$c" && $c == "$d" ]]; then
+        echo $a $b $c $d >"${OUTDIR}/.done"
+    else
+      echo "ERROR: Number of lines mismatch: $x $a $b $c $d"  1>&2
+      exit 1
+    fi
 }
 
-stream_html() {
-  size=$(rclone lsjson $FIN | jq -c '.[]|.Size/pow(2; 30)')
+# Cleanup trap to remove the temporary directory on exit
+cleanup() {
+    echo "Cleaning up temporary directory: $TMP_DIR"
+    rm -rf "$TMP_DIR"
+}
+trap cleanup EXIT
 
-  # rclone occasionally crashes with EOF error when streaming some files from lumio (<1% for bs=10, ~50% for bs=1000)...
-  # s3cmd shows warnings about EOF for these files, but retries with success
-  if [[ $FIN =~ ^lumio: ]]; then
-    S3FIN=`echo $FIN | sed 's@lumio:@s3://@'`
-    echo "Streaming $S3FIN of size $size GB using s3cmd"  1>&2
-    s3cmd get $S3FIN - | zstdcat
-  else
-    echo "Streaming $FIN of size $size GB using rclone"  1>&2
-    rclone cat $FIN | zstdcat
-  fi
+# Create a temporary directory for intermediate files
+TMP_DIR=$(mktemp -d)
+# Ensure the main output directory exists
+mkdir -p "$OUTDIR" "$TMP_DIR"
+
+# intermediate files
+FL1="$TMP_DIR/l1"
+FL2="$TMP_DIR/l2"
+FHTMLMETA="$TMP_DIR/htmlmeta"
+
+mkfifo "$TMP_DIR/pipe_l1"
+mkfifo "$TMP_DIR/pipe_l2"
+mkfifo "$TMP_DIR/pipe_md"
+
+NJOBS=$(($NJOBS - 2))  # 1 cpu for muxdemux, 1 for compression processes in the pipeline
+GLJOBS=$(( NJOBS / 2 )); (( GLJOBS < 1 )) && GLJOBS=1   # (3N+3+2N+4)/6 = (5N+7)/6 = 5/6 N + 7/6 < N <=> N > 7
+OLJOBS=$(( NJOBS / 3 )); (( OLJOBS < 1 )) && OLJOBS=1
+MDJOBS=$(($NJOBS - $OLJOBS - $GLJOBS)); (( MDJOBS < 1 )) && MDJOBS=1
+
+LID_BLOCKSIZE=30M  # the block size selected for OpenLID in stage2; should be ok for xml2md.py too as loading time is smaller and inputs are larger (xml vs. text)
+XML2MD_BLOCKSIZE=10M  # the block size selected for OpenLID in stage2; should be ok for xml2md.py too as loading time is smaller and inputs are larger (xml vs. text)
+
+run_lid_parallel() {
+    # --keep-order guarantees that GNU Parallel will collect stdout from tasks and print it to its stdout in the order
+    # aligned with the order of input lines
+    # --block issues one task per block of input lines of roughly this size, but without breaking lines;
+    # making it too small will increase extra costs on script initialization (e.e. weights loading for langid),
+    # making it too large will require buffering too much outputs in parallel due to --keep-order requirement.
+    printf "started %s in %s processes\n" "${2}" "${1}" 1>&2
+    time_start=$(date +%s.%N)
+    parallel --halt now,fail=1 --block $LID_BLOCKSIZE -j "${1}" --pipe --keep-order  \
+            "python -m hplt_textpipes.stage3.fastertext_lid.proto_langid --identity ${2}"
+    time_end=$(date +%s.%N)
+    printf "%.3fs: finished %s in %s processes\n" "$(echo "$time_end - $time_start" | bc)" "${2}" "${1}" 1>&2
 }
 
-process_html() {
-  NJOBS=`nproc --all`
-  BLOCKSIZE_TRAF=30M  #  more parallel processes than for lid require smaller blocks;
-  TRAF_TIMEOUT=10  # timeout 10s, increased from 0.5s to compensate for adding xml extraction for the 3rd iteration and hopefully get more long good texts
-  BLOCKSIZE_LID=100M  # 0.3s-0.5s to load model, 4.4s to FastText.predict for 10k lines, 28 MB (not random sample!)
-
-  NJOBS=$(($NJOBS - 8))  # leave some threads for rclone, zstdcat, zstd steps in the pipeline
-  NJOBS_LID=$(($NJOBS/10 + 1))
-  NJOBS_TRAF=$(($NJOBS - $NJOBS_LID))
-
-  # --keep-order guarantees that GNU Parallel will collect stdout from tasks and print it to its stdout in the order
-  # aligned with the order of input lines
-  # --block issues one task per block of input lines of roughly this size, but without breaking lines;
-  # making it too small will increase extra costs on script initialization (e.g. weights loading for langid),
-  # making it too large will require buffering too much outputs in parallel due to --keep-order requirement.
-  echo Running lid in $NJOBS_LID and trafilatura in $NJOBS_TRAF processes
-
-  stream_html \
-      | parallel --halt now,fail=1 --block $BLOCKSIZE_TRAF -j $NJOBS_TRAF --pipe --keep-order  \
-          "python -m hplt_textpipes.stage2.trafilatura.traf --timelimit_perdoc ${TRAF_TIMEOUT}" | tee >(zstd > ${OUTDIR}/text.zst) \
-      | parallel --halt now,fail=1 --block $BLOCKSIZE_LID -j $NJOBS_LID --pipe --keep-order \
-          "python -m hplt_textpipes.stage2.fastertext_lid.proto_langid" | zstd > ${OUTDIR}/lang.zst
+run_xml2md_parallel() {
+    printf "started xml2md in max %s processes\n" "${1}" 1>&2
+    time_start=$(date +%s.%N)
+    parallel --halt now,fail=1 --block $XML2MD_BLOCKSIZE -j "${1}" --pipe --keep-order  \
+            "python -m hplt_textpipes.stage3.xml2md --md-only --verbosity=0"
+    time_end=$(date +%s.%N)
+    printf "%.3fs: finished xml2md in max %s processes\n" "$(echo "$time_end - $time_start" | bc)" "${1}" 1>&2
 }
 
-time prepare_inputs
-time process_html
-time check_outputs
+compress() {
+    zstd >"${1}"
+}
+
+# Start background processes to read from named pipes
+run_xml2md_parallel $MDJOBS <"$TMP_DIR/pipe_md" | zstd >"$OUTDIR/md.zst"  &
+PID_MD=$!
+
+run_lid_parallel $GLJOBS glotlid-v3 <"$TMP_DIR/pipe_l2" >"$FL2"  &
+PID_L2=$!
+
+run_lid_parallel $OLJOBS openlid-v3 <"$TMP_DIR/pipe_l1" >"$FL1"  &
+PID_L1=$!
+
+echo $(date +"%T") starting jsonl_muxdemux 1
+python -m hplt_textpipes.utils.jsonl_muxdemux \
+    <(zstdcat "$INDIR/text.zst") \
+    -- \
+    >(compress "$OUTDIR/xml.zst") xml=x \
+    >(compress "$OUTDIR/text.zst") text=t \
+    "$FHTMLMETA" htmllang,metalang,tagfilter  \
+    "$TMP_DIR/pipe_l2" t \
+    "$TMP_DIR/pipe_l1" t \
+    "$TMP_DIR/pipe_md" x
+
+# Wait for background lid processes to finish
+
+echo $(date +"%T") waiting for LIDs to finish
+wait $PID_L2 $PID_L1
+
+echo $(date +"%T") starting jsonl_muxdemux 2
+python -m hplt_textpipes.utils.jsonl_muxdemux \
+    <(zstdcat "$INDIR/metadata.zst" | python -m hplt_textpipes.stage3.add_id -) \
+    <(zstdcat "$INDIR/lang.zst" | jq -c '{"openlid-v2":.}') \
+    "$FHTMLMETA" \
+    "$FL2" \
+    "$FL1" \
+    -- \
+    >(compress "$OUTDIR/metadata.zst") '*'
+
+# Wait for background xml2md processes to finish
+
+echo $(date +"%T") waiting for xml2md to finish
+wait $PID_MD
+echo $(date +"%T") "all done"
+
+check_outputs
