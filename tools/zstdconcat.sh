@@ -5,7 +5,6 @@ if [ -z "${1}" -o ! -d "${1}" ]; then
   exit 1;
 fi
 
-set -x;
 input=${1};
 
 prefix=/tmp/.pipe.${USER}.${$};
