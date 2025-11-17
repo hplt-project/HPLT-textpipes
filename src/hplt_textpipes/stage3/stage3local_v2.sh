@@ -1,23 +1,23 @@
 #!/bin/bash
 set -euo pipefail
 
-INDIR=$1
-OUTDIR=$2
+INPUT_DIR=$1
+OUTPUT_DIR=$2
 NJOBS=$3
 
 check_outputs() {
     # check the number of lines
-    fallowed="${INDIR}/allowed.zst"
+    fallowed="${INPUT_DIR}/allowed.zst"
     if rclone lsf "$fallowed"  &>/dev/null; then
       x=$(rclone cat "$fallowed" | zstdcat | jq -c 'select(.allowed==true)'|wc)
     else
-      x=$(rclone cat "${INDIR}/metadata.zst" | zstdcat | wc -l)
+      x=$(rclone cat "${INPUT_DIR}/metadata.zst" | zstdcat | wc -l)
     fi
 
-    C=`paste <(zstdcat ${OUTDIR}/text.zst|wc -l) <(zstdcat ${OUTDIR}/xml.zst|wc -l) <(zstdcat ${OUTDIR}/md.zst|wc -l) <(zstdcat ${OUTDIR}/metadata.zst|wc -l)`
+    C=`paste <(zstdcat ${OUTPUT_DIR}/text.zst|wc -l) <(zstdcat ${OUTPUT_DIR}/xml.zst|wc -l) <(zstdcat ${OUTPUT_DIR}/md.zst|wc -l) <(zstdcat ${OUTPUT_DIR}/metadata.zst|wc -l)`
     read a b c d  <<< "$C"
     if [[ $x == "$a" && $a == "$b" && $b == "$c" && $c == "$d" ]]; then
-        echo $a $b $c $d >"${OUTDIR}/.done"
+        echo $a $b $c $d >"${OUTPUT_DIR}/.done"
     else
       echo "ERROR: Number of lines mismatch: $x $a $b $c $d"  1>&2
       exit 1
@@ -34,7 +34,7 @@ trap cleanup EXIT
 # Create a temporary directory for intermediate files
 TMP_DIR=$(mktemp -d)
 # Ensure the main output directory exists
-mkdir -p "$OUTDIR" "$TMP_DIR"
+mkdir -p "$OUTPUT_DIR" "$TMP_DIR"
 
 # intermediate files
 FL1="$TMP_DIR/l1"
