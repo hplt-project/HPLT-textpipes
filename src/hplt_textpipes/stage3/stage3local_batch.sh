@@ -29,7 +29,7 @@ printf "%s\n" "${@:3}" | xargs -n1 rclone lsjson | jq -c '.[]|.Size' | awk '{sum
 # --no-notice suppresses the citation message.
 # --line-buffer helps prevent output from different jobs from being interleaved badly.
 # By default, parallel runs all jobs and its exit code will be non-zero if any job failed.
-parallel --no-notice -j4 'process "{}" 32' ::: "${@:3}"
+parallel --no-notice -j4 'process {} 32' ::: "${@:3}"
 final_rc=$?
 
 if [ "$final_rc" -eq 0 ]; then
