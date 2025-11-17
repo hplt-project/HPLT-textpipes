@@ -60,7 +60,10 @@ def main():
             line += "," + _.rstrip()[1:-1];
           else:
             line += "," + _.rstrip()[1:];
-      print(line);
+      try:
+        print(line);
+      except BrokenPipeError:
+        break;
   print("zstdconcat.py: concatenaded {} input lines(s); {:.2f} seconds."
         "".format(i + 1, time.time() - start),
         file = sys.stderr, flush = True);
