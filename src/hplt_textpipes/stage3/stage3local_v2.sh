@@ -91,7 +91,7 @@ PID_MD=$!
 
 echo $(date +"%T") step1: starting jsonl_muxdemux  1>&2
 python -m hplt_textpipes.utils.jsonl_muxdemux \
-    <(zstdcat "$INPUT_DIR/text.zst") \
+    <(rclone cat "$INDIR/text.zst" | zstdcat) \
     -- \
     "$TMP_DIR/pipe_l2" text=t \
     $TMP_DIR/xml xml=x \
@@ -120,8 +120,8 @@ run_lid_parallel $OLJOBS openlid-v3 text <"$TMP_DIR/text" >"$FL1"
 # step3 collects all metadata
 echo $(date +"%T") step3: starting jsonl_muxdemux  1>&2
 python -m hplt_textpipes.utils.jsonl_muxdemux \
-    <(zstdcat "$INPUT_DIR/metadata.zst" | python -m hplt_textpipes.stage3.add_id -) \
-    <(zstdcat "$INPUT_DIR/lang.zst" | jq -c '{"openlid-v2":.}') \
+    <(rclone cat "$INDIR/metadata.zst" | zstdcat | python -m hplt_textpipes.stage3.add_id -) \
+    <(rclone cat  "$INDIR/lang.zst" | zstdcat | jq -c '{"openlid-v2":.}') \
     "$FHTMLMETA" \
     "$FL2" \
     "$FL1" \
