@@ -77,14 +77,14 @@ compress_file() {
 #zstdcat "$INPUT_DIR/text.zst" | run_lid_parallel $GLJOBS glotlid-v3 t >/dev/null 
 #zstdcat "$INPUT_DIR/text.zst" | run_lid_parallel $OLJOBS openlid-v3 t >/dev/null
 
-# Run xml2md and glotlid in background, and 1a in foreground: text.zst -> l2, xml, text, md, htmllang
+# Run xml2md and glotlid in background, and mexdemux in foreground: text.zst -> l2, xml, text, md, htmllang
 run_lid_parallel $GLJOBS glotlid-v3 text <"$TMP_DIR/pipe_l2" >"$FL2"  &
 PID_L2=$!
 
 run_xml2md_parallel $MDJOBS <"$TMP_DIR/pipe_md" >"$TMP_DIR/md"  &
 PID_MD=$!
 
-echo $(date +"%T") starting jsonl_muxdemux 1a
+echo $(date +"%T") step1: starting jsonl_muxdemux 1a
 time -p python -m hplt_textpipes.utils.jsonl_muxdemux \
     <(zstdcat "$INPUT_DIR/text.zst") \
     -- \
@@ -94,36 +94,29 @@ time -p python -m hplt_textpipes.utils.jsonl_muxdemux \
     "$FHTMLMETA" htmllang,metalang,tagfilter  \
     "$TMP_DIR/pipe_md" x 
 
-echo $(date +"%T") waiting for background xml2md and glotlid processes
-time -p wait $PID_MD $PID_L2
-echo $(date +"%T") background xml2md and glotlid processes finished
+echo $(date +"%T") waiting for background xml2md
+time -p wait $PID_MD
+echo $(date +"%T") background xml2md processes finished
 
-# Start compression to xml.zst, text.zst, md.zst in the background
+# xml, text, md are ready, start compression to xml.zst, text.zst, md.zst in the background
 pids=()
-echo $(date +"%T") starting 3xt2sz
+echo $(date +"%T") starting 3x t2sz in background
 for f in xml md text; do
     compress_file "$TMP_DIR/${f}" "$OUTPUT_DIR/${f}.zst" &
     pids+=("$!")        
 done
 
-echo $(date +"%T") running openlid
+# NB! this results is a delay, but we risk OOM if running many openlids before all glotlids finished
+echo $(date +"%T") waiting for background glotlid processes
+time -p wait $PID_L2
+echo $(date +"%T") background glotlid processes finished
+
+
+echo $(date +"%T") step2: running openlid
 time -p run_lid_parallel $OLJOBS openlid-v3 text <"$TMP_DIR/text" >"$FL1" 
-#PID_L1=$!
 
-
-#echo $(date +"%T") starting jsonl_muxdemux 1b
-#time -p python -m hplt_textpipes.utils.jsonl_muxdemux_pbars \
-#    $TMP_DIR/text \
-#    -- \
-#    "$TMP_DIR/pipe_l1" text 
-
-# Wait for background lid processes to finish, we need them for 2a
-
-#echo $(date +"%T") waiting for LIDs to finish
-#time -p wait $PID_L2 $PID_L1
-
-# 2a collects all metadata
-echo $(date +"%T") starting jsonl_muxdemux 2
+# step3 collects all metadata
+echo $(date +"%T") step3: starting jsonl_muxdemux
 time -p python -m hplt_textpipes.utils.jsonl_muxdemux \
     <(zstdcat "$INPUT_DIR/metadata.zst" | python -m hplt_textpipes.stage3.add_id -) \
     <(zstdcat "$INPUT_DIR/lang.zst" | jq -c '{"openlid-v2":.}') \
@@ -132,7 +125,6 @@ time -p python -m hplt_textpipes.utils.jsonl_muxdemux \
     "$FL1" \
     -- \
     $TMP_DIR/metadata '*'
-
 
 echo "$(date +"%T") finishing compression"
 time -p compress_file $TMP_DIR/metadata $OUTPUT_DIR/metadata.zst
