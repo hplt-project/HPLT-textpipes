@@ -8,9 +8,8 @@ LOCALSCRIPT=$5
 LOGDIR=logs_$(date +%Y-%m-%d-%H-%M-%S)
 mkdir $LOGDIR
 
-
 filter_done() {
-  while read -r FIN; do
+  while read -r line; do
     fdone=$(stage3getoutdir.sh "${FIN}" "${OUTDIR}")/.done
     if [ ! -f "$fdone" ]; then
       echo "$line"
