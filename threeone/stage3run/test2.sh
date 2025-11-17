@@ -27,12 +27,12 @@ mkfifo "$TMP_DIR/pipe_l1"
 mkfifo "$TMP_DIR/pipe_l2"
 mkfifo "$TMP_DIR/pipe_md"
 
-
-NJOBS=$(($NJOBS - 2))  # 1 cpu for muxdemux, 1 for 3xzstd in the pipeline
-MDJOBS=8
-GLJOBS=$(( NJOBS - $MDJOBS )); (( GLJOBS < 1 )) && GLJOBS=1  
-OLJOBS=$(( NJOBS )); (( OLJOBS < 1 )) && OLJOBS=1
-#MDJOBS=$(($NJOBS - $OLJOBS - $GLJOBS)); (( MDJOBS < 1 )) && MDJOBS=1
+NJOBS=$(( NJOBS - 2 ))  # leave 2 for non-cpu-intensive and auxiliary processes
+# step1: 30% xml2md, 70% glotlid
+MDJOBS=$(( NJOBS * 3 / 10 )); (( MDJOBS < 1 )) && MDJOBS=1
+GLJOBS=$(( NJOBS - MDJOBS )); (( GLJOBS < 1 )) && GLJOBS=1
+# step2: 3 for compression, rest openlid
+OLJOBS=$(( NJOBS - 3 )); (( OLJOBS < 1 )) && OLJOBS=1
 
 LID_BLOCKSIZE=30M  # the block size selected for OpenLID in stage2; should be ok for xml2md.py too as loading time is smaller and inputs are larger (xml vs. text)
 XML2MD_BLOCKSIZE=10M  # the block size selected for OpenLID in stage2; should be ok for xml2md.py too as loading time is smaller and inputs are larger (xml vs. text)
