@@ -123,7 +123,6 @@ def main():
       
   n, s = len(streams), 0;
   if n:
-    i = 0;
     for i, line in enumerate(streams[0]):
       if filter is not None:
         _ = filter.readline();
@@ -140,8 +139,8 @@ def main():
       line = line.rstrip();
       if mode == "json":
         result = orjson.loads(line);
-      else:
-        if n > 1: result = line[:-1];
+      elif n > 1: result = line[:-1];
+      else: result = line;
       for j, stream in enumerate(streams[1:]):
         _ = stream.readline();
         if not len(_):
