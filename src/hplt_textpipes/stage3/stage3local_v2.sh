@@ -79,7 +79,7 @@ run_xml2md_parallel() {
 }
 
 compress_file() {
-    t2sz "${1}" -s 512K -l 3 -o "${2}".512K
+    t2sz "${1}" -s 512K -l 3 -o "${2}"
 }
 
 # Run xml2md and glotlid in background, and mexdemux in foreground: text.zst -> l2, xml, text, md, htmllang
