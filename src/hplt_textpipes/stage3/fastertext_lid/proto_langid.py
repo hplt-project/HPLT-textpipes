@@ -199,8 +199,13 @@ if __name__ == "__main__":
         base = os.path.dirname(os.path.realpath(__file__));
         model = os.path.join(base, args.identity + ".bin");
     if not os.path.isfile(model):
-        base = os.path.join(Path.home(), ".cache", "hplt");
-        model = os.path.join(base, args.identity + ".bin");
+        if 'HPLT_CACHE' in os.environ:
+            # Retrieve the value from the env variable
+            base = os.environ['HPLT_CACHE']
+        else:
+            base = os.path.join(Path.home(), ".cache", "hplt")
+        print(f"Cache directory: {base}")
+        model = os.path.join(base, args.identity + ".bin")
     if not os.path.isfile(model):
         print("proto_langid.py: missing model file for {}; exit."
               "".format(args.identity),
