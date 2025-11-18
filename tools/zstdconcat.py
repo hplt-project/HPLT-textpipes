@@ -8,9 +8,12 @@ import io;
 import orjson;
 import os;
 from pathlib import Path;
+import regex;
 from subprocess import Popen, PIPE;
 import sys;
 import time;
+import traceback;
+from xxhash import xxh128_hexdigest;
 import zstandard;
 
 def connect(path, mode, pipe, buffer):
@@ -35,16 +38,34 @@ def connect(path, mode, pipe, buffer):
       _ = io.BufferedReader(zstandard.open(path, "rb"), buffer_size = buffer);
     return _;
 
+def parse(chunk):
+  result = None;
+  try:
+    if isinstance(chunk, bytes): chunk = chunk.decode("utf-8", errors = "strict");
+    result = orjson.loads(chunk);
+  except UnicodeError as error:
+    print("zstdconcat.py: failed to decode bytes object {}; skip."
+          "".format(chunk),
+          file = sys.stderr, flush = True);
+  except Exception as error:
+    print("zstdconcat.py: failed to parse string {}; skip."
+          "".format(chunk),
+          file = sys.stderr, flush = True);
+  return result;
+
+NONWORD_REPLACE_PATTERN = regex.compile(r"[^\p{Word}\p{Zs}]|\d");
+SPACE_PATTERN = regex.compile(r"\s\s+")
+
 def lid(text, identity, model):
   if text in {None, ""}: return {"lang": None};
   if "openlid" in identity:
-    from hplt_textpipes.stage2.fastertext_lid.patterns import NONWORD_REPLACE_PATTERN, SPACE_PATTERN;
     text = text.strip().replace('\n', ' ').lower();
-    text = regex.sub(SPACE_PATTERN, " ", text);
-    text = regex.sub(NONWORD_REPLACE_PATTERN, "", text);
+    text = SPACE_PATTERN.sub(" ", text);
+    text = NONWORD_REPLACE_PATTERN.sub("", text);
   else:
     text = text.strip().replace("\n", " ");
-  result = model.predict(text = text, k = 3, threshold = 0.0, on_unicode_error="strict");
+  result = model.predict(text = text, k = 3, threshold = 0.0,
+                         on_unicode_error = "strict");
   return {"lang": [_.removeprefix("__label__") for _ in result[0]],
           "prob": [float(round(_, 4)) for _ in result[1]]};
 
@@ -71,12 +92,10 @@ def main():
             "".format(arguments.pool),
             file = sys.stderr, flush = True);
       sys.exit(1);
-    if mode != "json":
-      print("zstdconcat.py: --mode {} not compatible with --pool creation; exit."
-            "".format(mode),
-            file = sys.stderr, flush = True);
-      sys.exit(1);
-      
+  elif len(arguments.lid):
+    print("zstdconcat.py: --lid annotations require --pool output; exit.",
+          file = sys.stderr, flush = True);
+    sys.exit(1);
     
   #
   # increase output buffer size
@@ -103,7 +122,7 @@ def main():
 
   lids = [];
   if len(arguments.lid):
-    import fasttext, regex;
+    import fasttext;
     cache = os.path.join(Path.home(), ".cache", "hplt");
   for identity in arguments.lid:
     _ = os.path.join(cache, identity + ".bin");
@@ -121,72 +140,101 @@ def main():
             file = sys.stderr, flush = True);
       sys.exit(1);
       
-  n, s = len(streams), 0;
+  n, f, s = len(streams), 0, 0;
   if n:
     for i, line in enumerate(streams[0]):
+      chunks = [];
       if filter is not None:
         _ = filter.readline();
         if not len(_):
-          print("zstdconcat.py: premature end of file on {}; exit"
-          "".format(arguments.filter),
+          print("zstdconcat.py: premature end of file on {} (#{}); exit"
+          "".format(arguments.filter, i),
           file = sys.stderr, flush = True);
           sys.exit(1);
         if not (b"true" if mode == "bytes" else "true") in _:
           for stream in streams[1:]: stream.readline();
-          s += 1;
+          f += 1;
           continue;
         
       line = line.rstrip();
-      if mode == "json":
-        result = orjson.loads(line);
-      elif n > 1: result = line[:-1];
-      else: result = line;
+      if mode == "json": chunks.append(parse(line));
+      elif n > 1: chunks.append(line[:-1]);
+      else: chunks.append(line);
       for j, stream in enumerate(streams[1:]):
         _ = stream.readline();
         if not len(_):
-          print("zstdconcat.py: premature end of file on {}; exit"
-                "".format(arguments.inputs[j + 1]),
+          print("zstdconcat.py: premature end of file on {} (#{}); exit"
+                "".format(arguments.inputs[j + 1], i),
                 file = sys.stderr, flush = True);
           sys.exit(1);
-        if mode == "json":
-          result |= orjson.loads(_);
+        if mode == "json": chunks.append(parse(_));
         elif j < n - 2:
-          result += (b"," if mode == "bytes" else ",") + _.rstrip()[1:-1];
+          chunks.append(b"," if mode == "bytes" else ",");
+          chunks.append(_.rstrip()[1:-1]);
         else:
-          result += (b"," if mode == "bytes" else ",") + _.rstrip()[1:];
+          chunks.append(b"," if mode == "bytes" else ",");
+          chunks.append(_.rstrip()[1:]);
 
+      if mode == "json" and not None in chunks:
+        result = chunks.pop(0);
+        for chunk in chunks: result |= chunk;
+      else:
+        result = (b"" if mode == "bytes" else "").join(chunks);
+        
       #
-      # optionally, perform a series of additional annotations
+      # optionally, hard-wire pool-level annotation and normalization:
+      # + assign unique document id
+      # + try to convert XML to markdown
+      # + "t" -> "text", "x" -> "xml", "htmllang" -> "html_lang"
+      # + write out textual represtations as separate files
       #
-      if len(lids):
-        try:
-          if "t" not in result:
-            print("zstdconcat.py: missing text field; exit",
+      if arguments.pool is not None:
+        if mode != "json": result = parse(result);
+        if result is None or "t" not in result:
+          print("zstdconcat.py: missing text field (#{}); exit"
+                "".format(i),
+                file = sys.stderr, flush = True);
+          sys.exit(1);
+
+        text = result["t"];
+        if len(lids):
+          try:
+            for identity, model in lids:
+              result[identity] = lid(text, identity, model);
+          except Exception as error:
+            print("zstdconcat.py: error in lid {} (#{}); exit"
+                  "".format(identity, i),
+                  file = sys.stderr, flush = True);
+            print("".join(traceback.format_exception(error)),
                   file = sys.stderr, flush = True);
             sys.exit(1);
-            
-          for identity, model in lids:
-            result[identity] = lid(result["t"], identity, model);
-        except Exception as error:
-          print("zstdconcat.py: error in lid {}; exit"
-                "".format(identity),
-                file = sys.stderr, flush = True);
-          print("".join(traceback.format_exception(error)),
+
+        if "f" not in result or "u" not in result or "ts" not in result:
+          print("zstdconcat.py: missing key(s) for id (#{}); exit"
+                "".format(i),
                 file = sys.stderr, flush = True);
           sys.exit(1);
-              
-      if mode == "json":
+        result["id"] = xxh128_hexdigest(result["f"] + result["u"] + result["ts"]);
+        result["text"] = result.pop("t");
+        
+        if "x" in result: result["xml"] = result.pop("x");
+        if "htmllang" in result: result["html_lang"] = result.pop("htmllang");
+
         output.write(orjson.dumps(result, option = orjson.OPT_APPEND_NEWLINE));
       else:
-        output.write(result + ("\n" if mode == "string" else b"\n"));
+        if mode == "json":
+          output.write(orjson.dumps(result, option = orjson.OPT_APPEND_NEWLINE));
+        else:
+          output.write(result + ("\n" if mode == "string" else b"\n"));
 
+  if filter is not None: filter.close();
   for _ in streams: _.close();
+  output.close();
   print("zstdconcat.py: processed {} {}input lines(s); {:.2f} seconds."
         "".format(i + 1,
-                  f"(- {s}) " if arguments.filter else "",
+                  f"(- {f} filtered) " if arguments.filter else "",
                   time.time() - start),
         file = sys.stderr, flush = True);
-      
 
 if __name__ == "__main__":
   main();
