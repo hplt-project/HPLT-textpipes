@@ -27,7 +27,8 @@ class FastTextLangId:
         *,
         use_logging: bool = False,
         level_log: int | None = logging.INFO,
-        identity: str = "openlid-v3"
+        identity: str = "openlid-v3",
+        text_field: str = "t",
     ) -> None:
         """
         Init the FastText model.
@@ -44,7 +45,8 @@ class FastTextLangId:
         else:
             self.logger = logging.getLogger(name=f"{identity}_langid_logger_disabled")
             self.logger.disabled = True
-        self.identity = identity;
+        self.identity = identity
+        self.text_field = text_field
         self.model = fasttext.load_model(model_path)
         self.logger.debug(f"FastTextLangId model loaded: {model_path}.")
 
@@ -99,7 +101,7 @@ class FastTextLangId:
                 json_line = ujson.loads(fileinput_line)
                 self.logger.debug("Read json line.")
 
-                if json_line["t"] is None:
+                if json_line[self.text_field] is None:
                     self.logger.debug("Case: text is None.")
                     result = {"lang": None};
                     if self.identity is not None:
@@ -107,7 +109,7 @@ class FastTextLangId:
                     if enrich: result["md"] = None;
                     print(ujson.dumps(result))
 
-                elif len(json_line["t"]) == 0:
+                elif len(json_line[self.text_field]) == 0:
                     self.logger.debug("Case: text is empty.")
                     result = {"lang": None};
                     if self.identity is not None:
@@ -117,11 +119,11 @@ class FastTextLangId:
 
                 else:
                     self.logger.debug("Case: text is ok.")
-                    text = json_line["t"];
+                    text = json_line[self.text_field]
                     if self.identity is None or "openlid" in self.identity:
-                        text = self._preproccess_text(text);
+                        text = self._preproccess_text(text)
                     else:
-                        text = text.replace("\n", " ");
+                        text = text.replace("\n", " ")
                     prediction = self.model.predict(
                         text=text,
                         k=3,
@@ -170,6 +172,12 @@ if __name__ == "__main__":
         help="Type and version of LID model.",
     )
     parser.add_argument(
+        "--text_field",
+        type=str,
+        default="t",
+        help="JSON field containing the text to be processed.",
+    )
+    parser.add_argument(
         "--use_logging",
         type=bool,
         default=False,
@@ -203,7 +211,8 @@ if __name__ == "__main__":
         model_path=model,
         use_logging=args.use_logging,
         level_log=logging.getLevelName(args.log_level),
-        identity = args.identity
+        identity = args.identity,
+        text_field = args.text_field,
     )
 
     loaded_model.predict_language_from_stdin_jsonlines(args.enrich);

@@ -47,6 +47,7 @@ script-files = [
     "src/hplt_textpipes/stage3/stage3local_batch.sh",
     "src/hplt_textpipes/stage3/stage3local.sh",
     "src/hplt_textpipes/stage3/stage3getoutdir.sh",
+    "src/hplt_textpipes/stage3/stage3local_v2.sh",
 
 
     #    "src/hplt_textpipes/stage1/generate_tasks.sh",
