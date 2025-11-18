@@ -181,13 +181,14 @@ def main():
       else:
         output.write(result + ("\n" if mode == "string" else b"\n"));
 
+  if filter is not None: filter.close();
   for _ in streams: _.close();
+  output.close();
   print("zstdconcat.py: processed {} {}input lines(s); {:.2f} seconds."
         "".format(i + 1,
                   f"(- {s}) " if arguments.filter else "",
                   time.time() - start),
         file = sys.stderr, flush = True);
-      
 
 if __name__ == "__main__":
   main();
