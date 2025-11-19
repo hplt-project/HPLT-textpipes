@@ -75,14 +75,14 @@ It strips endpoint: and reconstructs path under the specified OUTPUT directory.
 
 Specify the account and the partition SLURM should use:
 ```commandline
-export SLURM_ACCOUNT=project_465001890
+export SLURM_ACCOUNT=project_465002259
 export SLURM_MEM_PER_NODE=0  # same as --mem=0, requests all memory since standard nodes are allocated fully
 export SLURM_PARTITION=standard
 export SLURM_TIMELIMIT=0-48:00:00
 ```
 
 ```commandline
-export SLURM_ACCOUNT=project_465001890
+export SLURM_ACCOUNT=project_465002259
 export SLURM_MEM_PER_CPU=1750M  # same as --mem-per-cpu=1750M, recommended for the small partition in the LUMI docs to avoid extra billing for larger memory nodes
 export SLURM_PARTITION=small
 export SLURM_TIMELIMIT=0-72:00:00
@@ -92,6 +92,32 @@ Run processing in 100 parallel nodes max, 50 GB of input HTMLs per SLURM job:
 ```commandline
 stage2nodeparallel_batched.sh 100 lumio.paths 50 ~/hplt/three/html_test
 ```
+
+### Stage3
+Prepare LUMI environment:
+```commandline
+source preplumicpu.sh
+source venv/bin/activate
+```
+
+Create endpoint threeone: in rclone pointing to the directory with the input data. Then list text.zst files that you want to process:
+```commandline
+rclone ls --include="text.zst" threeone: | grep -E '[0-9 ]+CC-MAIN' | sed -r 's!( *[0-9]+\s+)!\1 threeone:!' >threeone.paths
+```
+
+Export SLURM variables, replace the project with your project:
+```commandline
+export SLURM_ACCOUNT=project_465002259
+export SLURM_MEM_PER_CPU=1750M  # same as --mem-per-cpu=1750M, recommended for the small partition in the LUMI docs to avoid extra billing for larger memory nodes
+export SLURM_PARTITION=small
+export SLURM_TIMELIMIT=0-72:00:00
+```
+
+Run stage3, e.g. to run on 200 nodes with batches of 1200 GB of inputs (counting text.zst only) per node:
+```commandline
+stage3nodeparallel_batched.sh 200 paths 1200 ~/hplt_old/threeone/cc_stage3out stage3local_v2.sh
+```
+
 
 ### Older versions
 The code for text extraction in this repository is based on 
