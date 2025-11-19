@@ -485,7 +485,7 @@ def xml_to_markdown(xml_string):
     return process_element(main_elem)
 
 
-def process_single(item, line_num=None, raw = False):
+def process_single(item, line_num=None, raw = False, verbose = True):
     global TOTAL_LINES, SUCCESSFUL_CONVERSIONS
 
     TOTAL_LINES += 1
@@ -523,12 +523,12 @@ def process_single(item, line_num=None, raw = False):
     except ET.ParseError as e:
         # Convert XML parse errors to ConversionError and let the handler below deal with it
         error = ConversionError(f"Malformed XML content: {e}", ConversionError.HIGH)
-        if error.severity <= VERBOSITY_LEVEL:
+        if verbose and error.severity <= VERBOSITY_LEVEL:
             print(f"{line_prefix}Conversion error: {error}", file=sys.stderr)
 
     except ConversionError as e:
         # Only print errors with severity <= verbosity level
-        if e.severity <= VERBOSITY_LEVEL:
+        if verbose and e.severity <= VERBOSITY_LEVEL:
             print(f"{line_prefix}Conversion error: {e}", file=sys.stderr)
 
     if not raw and "md" not in item:
