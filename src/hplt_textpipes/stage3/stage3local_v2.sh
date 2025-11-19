@@ -32,7 +32,8 @@ cleanup() {
 trap cleanup EXIT
 
 # Create a temporary directory for intermediate files
-TMP_DIR=$(mktemp -d)
+#TMP_DIR=$(mktemp -d) # on LUMI puting files here contributes to the RAM usage, so we get OOM
+TMP_DIR="$OUTPUT_DIR"/tmp
 # Ensure the main output directory exists
 mkdir -p "$OUTPUT_DIR" "$TMP_DIR"
 
@@ -52,8 +53,8 @@ GLJOBS=$(( NJOBS - MDJOBS )); (( GLJOBS < 1 )) && GLJOBS=1
 # step2: 3 for compression, rest openlid
 OLJOBS=$(( NJOBS - 3 )); (( OLJOBS < 1 )) && OLJOBS=1
 
-LID_BLOCKSIZE=30M  # the block size selected for OpenLID in stage2; should be ok for xml2md.py too as loading time is smaller and inputs are larger (xml vs. text)
-XML2MD_BLOCKSIZE=10M  # the block size selected for OpenLID in stage2; should be ok for xml2md.py too as loading time is smaller and inputs are larger (xml vs. text)
+LID_BLOCKSIZE=100M  # the block size selected for OpenLID in stage2; 
+XML2MD_BLOCKSIZE=30M # use smaller block for xml2md.py as it takes less time to initiate
 
 run_lid_parallel() {
     # --keep-order guarantees that GNU Parallel will collect stdout from tasks and print it to its stdout in the order

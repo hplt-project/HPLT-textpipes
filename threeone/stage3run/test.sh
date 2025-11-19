@@ -129,4 +129,10 @@ python -m hplt_textpipes.utils.jsonl_muxdemux \
 
 echo $(date +"%T") waiting for xml2md to finish
 wait $PID_MD
+
+
+echo $(date +"%T") recompression started 
+for x in $OUTPUT_DIR/*zst; do ./recompress2multiframe.sh $x /tmp & done
+wait
+
 echo $(date +"%T") "all done"

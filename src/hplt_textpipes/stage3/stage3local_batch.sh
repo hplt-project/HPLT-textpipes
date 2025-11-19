@@ -25,11 +25,14 @@ echo "$(date) stage3local_batch.sh: processing ${@:3} in parallel, writing to $B
 echo -n "Total size in GB: "
 printf "%s\n" "${@:3}" | xargs -n1 rclone lsjson | jq -c '.[]|.Size' | awk '{sum+=$1} END {print sum/2**30}'
 
+
+source stage3preparenode.sh  # run node preparations that should be done once before processing the batch
+
 # Use GNU parallel to run the process function on each input file.
 # --no-notice suppresses the citation message.
 # --line-buffer helps prevent output from different jobs from being interleaved badly.
 # By default, parallel runs all jobs and its exit code will be non-zero if any job failed.
-parallel --no-notice -j4 'process {} 32' ::: "${@:3}"
+parallel --line-buffer --no-notice -j4 'process {} 32' ::: "${@:3}"
 final_rc=$?
 
 if [ "$final_rc" -eq 0 ]; then
