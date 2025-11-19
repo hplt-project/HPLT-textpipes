@@ -80,6 +80,7 @@ run_xml2md_parallel() {
 }
 
 compress_file() {
+    rm -f "${2}"  # remove the output file to avoid interactive questions
     t2sz "${1}" -s 512K -l 3 -o "${2}"
 }
 
