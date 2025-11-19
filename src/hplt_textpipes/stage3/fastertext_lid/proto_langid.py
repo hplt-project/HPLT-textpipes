@@ -204,7 +204,6 @@ if __name__ == "__main__":
             base = os.environ['HPLT_CACHE']
         else:
             base = os.path.join(Path.home(), ".cache", "hplt")
-        print(f"Cache directory: {base}")
         model = os.path.join(base, args.identity + ".bin")
     if not os.path.isfile(model):
         print("proto_langid.py: missing model file for {}; exit."
