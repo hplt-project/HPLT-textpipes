@@ -86,16 +86,25 @@ def main():
 
   io.DEFAULT_BUFFER_SIZE = arguments.buffer;
   mode = arguments.mode;
+  outputs = dict();
   if arguments.pool:
     if not os.path.isdir(arguments.pool):
       print("zstdconcat.py: invalid --pool target directory {}; exit."
             "".format(arguments.pool),
             file = sys.stderr, flush = True);
       sys.exit(1);
-  elif len(arguments.lid):
-    print("zstdconcat.py: --lid annotations require --pool output; exit.",
-          file = sys.stderr, flush = True);
-    sys.exit(1);
+    _ = os.path.dirname(__file__);
+    sys.path.append(os.path.realpath(os.path.join(_, "../src/hplt_textpipes/stage3")));
+    from xml2md import process_single;
+    for _ in ["xml", "md", "text", "metadata"]:
+      file = os.path.join(arguments.pool, _ + ".zst");
+      outputs[_] = io.BufferedWriter(zstandard.open(file, "wb"),
+                                     buffer_size = arguments.buffer);
+  else:
+    if len(arguments.lid):
+      print("zstdconcat.py: --lid annotations require --pool output; exit.",
+            file = sys.stderr, flush = True);
+      sys.exit(1);
     
   #
   # increase output buffer size
@@ -209,6 +218,20 @@ def main():
                   file = sys.stderr, flush = True);
             sys.exit(1);
 
+        md = None;
+        if "x" in result:
+          _ = result["x"];
+        try:
+          if _ not in {None, ""}:
+            md = process_single(_, line_num = i, raw = True, verbose = False);
+        except Exception as error:
+          print("zstdconcat.py: MD extraction failure, line #{} ({})."
+                "".format(i, error),
+                file = sys.stderr, flush = True);
+          print("".join(traceback.format_exception(error)),
+                file = sys.stderr, flush = True);
+        result["md"] = md;
+            
         if "f" not in result or "u" not in result or "ts" not in result:
           print("zstdconcat.py: missing key(s) for id (#{}); exit"
                 "".format(i),
@@ -218,9 +241,19 @@ def main():
         result["text"] = result.pop("t");
         
         if "x" in result: result["xml"] = result.pop("x");
+        else: result["xml"] = None;
         if "htmllang" in result: result["html_lang"] = result.pop("htmllang");
-
-        output.write(orjson.dumps(result, option = orjson.OPT_APPEND_NEWLINE));
+        _ = {"lang": result["lang"]};
+        result.pop("lang");
+        if "prob" in result:
+          _["prob"] = result["prob"];
+          result.pop("prob");
+        result["openlid-v2"] = _;
+        
+        for _ in ["xml", "md", "text"]:
+          outputs[_].write(orjson.dumps({_: result[_]}, option = orjson.OPT_APPEND_NEWLINE));
+          result.pop(_);
+        outputs["metadata"].write(orjson.dumps(result, option = orjson.OPT_APPEND_NEWLINE));
       else:
         if mode == "json":
           output.write(orjson.dumps(result, option = orjson.OPT_APPEND_NEWLINE));
@@ -230,6 +263,7 @@ def main():
   if filter is not None: filter.close();
   for _ in streams: _.close();
   output.close();
+  for _ in outputs.values(): _.close();
   print("zstdconcat.py: processed {} {}input lines(s); {:.2f} seconds."
         "".format(i + 1,
                   f"(- {f} filtered) " if arguments.filter else "",
