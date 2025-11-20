@@ -76,7 +76,7 @@ GLJOBS=$(( NJOBS - MDJOBS )); (( GLJOBS < 1 )) && GLJOBS=1
 # step2: 3 for compression, rest openlid
 OLJOBS=$(( NJOBS - 3 )); (( OLJOBS < 1 )) && OLJOBS=1
 
-LID_BLOCKSIZE=100M  # the block size selected for OpenLID in stage2; 
+LID_BLOCKSIZE=10M  # the block size selected for OpenLID in stage2; 
 XML2MD_BLOCKSIZE=30M # use smaller block for xml2md.py as it takes less time to initiate
 
 run_lid_parallel() {
@@ -120,7 +120,7 @@ echo $(date +"%T") step1: starting jsonl_muxdemux  1>&2
 stream_allowed_if_exists
 python -m hplt_textpipes.utils.jsonl_muxdemux \
     <(rclone cat "$INPUT_DIR/text.zst" | zstdcat) \
-    "$ALLOWED_PIPE" \
+    $ALLOWED_PIPE \
     -- \
     "$TMP_DIR/pipe_l2" text=t \
     $TMP_DIR/xml xml=x \
@@ -153,7 +153,7 @@ stream_allowed_if_exists
 python -m hplt_textpipes.utils.jsonl_muxdemux \
     <(rclone cat "$INPUT_DIR/metadata.zst" | zstdcat | python -m hplt_textpipes.stage3.add_id -) \
     <(rclone cat  "$INPUT_DIR/lang.zst" | zstdcat | jq -c '{"openlid-v2":.}') \
-    "$ALLOWED_PIPE" \
+    $ALLOWED_PIPE \
     -- \
     - '*' \
 | python -m hplt_textpipes.utils.jsonl_muxdemux \
