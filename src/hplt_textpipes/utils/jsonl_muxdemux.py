@@ -69,6 +69,9 @@ def process_files(input_files: list, output_map: dict):
                 if isinstance(record, dict):
                     merged_record.update(record)
 
+            if not merged_record.get('allowed', True):
+                continue  # skip this record if it contains allowed=False
+
             for path, spec in output_map.items():
                 output_record = _build_output_record(merged_record, spec)
                 out_handles[path].write(orjson.dumps(output_record, option=orjson.OPT_APPEND_NEWLINE))

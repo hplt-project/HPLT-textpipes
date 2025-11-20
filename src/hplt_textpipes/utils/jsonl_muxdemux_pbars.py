@@ -160,6 +160,9 @@ def process_files(input_files: list, output_specs: list):
                     if isinstance(record, dict):
                         merged_record.update(record)
 
+                if not merged_record.get('allowed', True):
+                    continue  # skip this record if it contains allowed=False
+
                 for i, (path, spec) in enumerate(output_specs):
                     output_record = _build_output_record(merged_record, spec)
                     start = time.monotonic()
