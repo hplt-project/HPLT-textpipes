@@ -164,6 +164,11 @@ def main():
   n, f, s = len(streams), 0, 0;
   if n:
     for i, line in enumerate(streams[0]):
+      if not line.startswith("{" if mode == "string" else b"{"):
+        print("zstdconcat.py: invalid JSON object {} ({}: #{}); exit"
+              "".format(line, arguments.inputs[0], i),
+              file = sys.stderr, flush = True);
+        sys.exit(1);
       chunks = [];
       if filter is not None:
         _ = filter.readline();
@@ -172,7 +177,12 @@ def main():
           "".format(arguments.filter, i),
           file = sys.stderr, flush = True);
           sys.exit(1);
-        if not (b"true" if mode == "bytes" else "true") in _:
+        if not _.startswith("{" if mode == "string" else b"{"):
+          print("zstdconcat.py: invalid JSON object {} ({}: #{}); exit"
+                "".format(_, arguments.filter, i),
+                file = sys.stderr, flush = True);
+          sys.exit(1);
+        if not ("true" if mode == "string" else b"true") in _:
           for stream in streams[1:]: stream.readline();
           f += 1;
           continue;
@@ -188,13 +198,21 @@ def main():
                 "".format(arguments.inputs[j + 1], i),
                 file = sys.stderr, flush = True);
           sys.exit(1);
+        if not _.startswith("{" if mode == "string" else b"{"):
+          print("zstdconcat.py: invalid JSON object {} ({}: #{}); exit"
+                "".format(_, arguments.inputs[j + 1], i),
+                file = sys.stderr, flush = True);
+          sys.exit(1);
         if mode == "json": chunks.append(parse(_));
-        elif j < n - 2:
-          chunks.append(b"," if mode == "bytes" else ",");
-          chunks.append(_.rstrip()[1:-1]);
         else:
-          chunks.append(b"," if mode == "bytes" else ",");
-          chunks.append(_.rstrip()[1:]);
+          #
+          # avoid spurious commas before empty JSON objects
+          #
+          if len(chunks[-1]) > 1 and len(_) > 3:
+            chunks.append("," if mode == "string" else b",");
+          if j < n - 2:
+            if len(_) > 3: chunks.append(_.rstrip()[1:-1]);
+          else: chunks.append(_.rstrip()[1:]);
 
       if mode == "json":
         if None in chunks:
@@ -203,7 +221,7 @@ def main():
           result = chunks.pop(0);
           for chunk in chunks: result |= chunk;
       else:
-        result = (b"" if mode == "bytes" else "").join(chunks);
+        result = ("" if mode == "string" else b"").join(chunks);
         
       #
       # optionally, hard-wire pool-level annotation and normalization:
