@@ -81,6 +81,7 @@ def main():
   parser.add_argument("--filter", type = str, default = None);
   parser.add_argument("--lid", action = "append", default = []);
   parser.add_argument("--pool", type = str);
+  parser.add_argument("--compress", type = str);
   parser.add_argument("inputs", nargs = "*");
   arguments = parser.parse_args();
 
@@ -93,10 +94,17 @@ def main():
             "".format(arguments.pool),
             file = sys.stderr, flush = True);
       sys.exit(1);
+    if arguments.compress is not None:
+      if not os.path.isdir(arguments.pool):
+        print("zstdconcat.py: --compress and --pool are mutually incompatible {}; exit."
+              "".format(arguments.pool),
+              file = sys.stderr, flush = True);
+        sys.exit(1);
+      
     _ = os.path.dirname(__file__);
     sys.path.append(os.path.realpath(os.path.join(_, "../src/hplt_textpipes/stage3")));
     from xml2md import process_single;
-    for _ in ["xml", "md", "text", "metadata"]:
+    for _ in ["markup", "text", "metadata"]:
       file = os.path.join(arguments.pool, _ + ".zst");
       outputs[_] = io.BufferedWriter(zstandard.open(file, "wb"),
                                      buffer_size = arguments.buffer);
@@ -109,11 +117,15 @@ def main():
   #
   # increase output buffer size
   #
-  if mode in {"bytes", "json"}:
-    output = open(1, "wb", buffering = arguments.buffer, closefd = False);
+  if arguments.compress is not None:
+    output = io.BufferedWriter(zstandard.open(arguments.compress, "wb"),
+                               buffer_size = arguments.buffer);
   else:
-    output = open(1, "w", encoding = "utf-8",
-                  buffering = arguments.buffer, closefd = False);
+    if mode in {"bytes", "json"}:
+      output = open(1, "wb", buffering = arguments.buffer, closefd = False);
+    else:
+      output = open(1, "w", encoding = "utf-8",
+                    buffering = arguments.buffer, closefd = False);
     
   filter = None;
   if arguments.filter is not None:
@@ -184,9 +196,12 @@ def main():
           chunks.append(b"," if mode == "bytes" else ",");
           chunks.append(_.rstrip()[1:]);
 
-      if mode == "json" and not None in chunks:
-        result = chunks.pop(0);
-        for chunk in chunks: result |= chunk;
+      if mode == "json":
+        if None in chunks:
+          s += 1;
+        else:
+          result = chunks.pop(0);
+          for chunk in chunks: result |= chunk;
       else:
         result = (b"" if mode == "bytes" else "").join(chunks);
         
@@ -250,9 +265,14 @@ def main():
           result.pop("prob");
         result["openlid-v2"] = _;
         
-        for _ in ["xml", "md", "text"]:
-          outputs[_].write(orjson.dumps({_: result[_]}, option = orjson.OPT_APPEND_NEWLINE));
-          result.pop(_);
+        outputs["text"].write(orjson.dumps({"text": result["text"]},
+                                           option = orjson.OPT_APPEND_NEWLINE));
+        result.pop("text");
+        markup = dict();
+        for _ in ["xml", "md"]:
+          if _ in result: markup[_] = result[_]; result.pop(_);
+        outputs["markup"].write(orjson.dumps(markup,
+                                           option = orjson.OPT_APPEND_NEWLINE));
         outputs["metadata"].write(orjson.dumps(result, option = orjson.OPT_APPEND_NEWLINE));
       else:
         if mode == "json":
@@ -264,9 +284,10 @@ def main():
   for _ in streams: _.close();
   output.close();
   for _ in outputs.values(): _.close();
-  print("zstdconcat.py: processed {} {}input lines(s); {:.2f} seconds."
+  print("zstdconcat.py: processed {} {}{}input lines(s); {:.2f} seconds."
         "".format(i + 1,
                   f"(- {f} filtered) " if arguments.filter else "",
+                  f"(- {s} skipped) " if s > 0 else "",
                   time.time() - start),
         file = sys.stderr, flush = True);
 
