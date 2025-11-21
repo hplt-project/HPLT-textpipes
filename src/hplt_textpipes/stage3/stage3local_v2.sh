@@ -5,13 +5,39 @@ INPUT_DIR=$1
 OUTPUT_DIR=$2
 NJOBS=$3
 
+
+# Create a temporary directory for intermediate files
+#TMP_DIR=$(mktemp -d) # on LUMI puting files here contributes to the RAM usage, so we get OOM
+TMP_DIR="$OUTPUT_DIR"/tmp
+# Ensure the main output directory exists
+mkdir -p "$OUTPUT_DIR" "$TMP_DIR"
+
+# intermediate files
+FL1="$TMP_DIR/l1"
+FL2="$TMP_DIR/l2"
+FHTMLMETA="$TMP_DIR/htmlmeta"
+
+
+# if allowed.zst exists, a named pipe will be used to stream it;
+# otherwise the empty string that will collapse when given as an additional argument
+rclone lsf "${INPUT_DIR}/allowed.zst" &>/dev/null && ALLOWED_PIPE="$TMP_DIR/pipe_allowed" || ALLOWED_PIPE=""
+
+stream_allowed_if_exists() {
+    if [[ -n "$ALLOWED_PIPE" ]]; then
+        rm -f "$ALLOWED_PIPE"
+        mkfifo "$ALLOWED_PIPE"
+        rclone cat "${INPUT_DIR}/allowed.zst" | zstdcat >"$ALLOWED_PIPE" &
+        # no need to wait this background process, the reading process will read till EOF that guarantees it exited
+    fi
+}
+
 check_outputs() {
     # check the number of lines
-    fallowed="${INPUT_DIR}/allowed.zst"
-    if rclone lsf "$fallowed"  &>/dev/null; then
-      x=$(rclone cat "$fallowed" | zstdcat | jq -c 'select(.allowed==true)'|wc)
+    if [[ -n "$ALLOWED_PIPE" ]]; then
+        stream_allowed_if_exists
+        x=$(jq -c 'select(.allowed==true)' <"$ALLOWED_PIPE" | wc -l)
     else
-      x=$(rclone cat "${INPUT_DIR}/metadata.zst" | zstdcat | wc -l)
+        x=$(rclone cat "${INPUT_DIR}/metadata.zst" | zstdcat | wc -l)
     fi
 
     C=`paste <(zstdcat ${OUTPUT_DIR}/text.zst|wc -l) <(zstdcat ${OUTPUT_DIR}/xml.zst|wc -l) <(zstdcat ${OUTPUT_DIR}/md.zst|wc -l) <(zstdcat ${OUTPUT_DIR}/metadata.zst|wc -l)`
@@ -42,9 +68,6 @@ FL1="$TMP_DIR/l1"
 FL2="$TMP_DIR/l2"
 FHTMLMETA="$TMP_DIR/htmlmeta"
 
-mkfifo "$TMP_DIR/pipe_l1"
-mkfifo "$TMP_DIR/pipe_l2"
-mkfifo "$TMP_DIR/pipe_md"
 
 NJOBS=$(( NJOBS - 2 ))  # leave 2 for non-cpu-intensive and auxiliary processes
 # step1: 30% xml2md, 70% glotlid
@@ -53,7 +76,7 @@ GLJOBS=$(( NJOBS - MDJOBS )); (( GLJOBS < 1 )) && GLJOBS=1
 # step2: 3 for compression, rest openlid
 OLJOBS=$(( NJOBS - 3 )); (( OLJOBS < 1 )) && OLJOBS=1
 
-LID_BLOCKSIZE=100M  # the block size selected for OpenLID in stage2; 
+LID_BLOCKSIZE=10M  # the block size selected for OpenLID in stage2; 
 XML2MD_BLOCKSIZE=30M # use smaller block for xml2md.py as it takes less time to initiate
 
 run_lid_parallel() {
@@ -80,19 +103,24 @@ run_xml2md_parallel() {
 }
 
 compress_file() {
+    rm -f "${2}"  # remove the output file to avoid interactive questions
     t2sz "${1}" -s 512K -l 3 -o "${2}"
 }
 
 # Run xml2md and glotlid in background, and mexdemux in foreground: text.zst -> l2, xml, text, md, htmllang
+mkfifo "$TMP_DIR/pipe_l2"
 run_lid_parallel $GLJOBS glotlid-v3 text <"$TMP_DIR/pipe_l2" >"$FL2"  &
 PID_L2=$!
 
+mkfifo "$TMP_DIR/pipe_md"
 run_xml2md_parallel $MDJOBS <"$TMP_DIR/pipe_md" >"$TMP_DIR/md"  &
 PID_MD=$!
 
 echo $(date +"%T") step1: starting jsonl_muxdemux  1>&2
+stream_allowed_if_exists
 python -m hplt_textpipes.utils.jsonl_muxdemux \
     <(rclone cat "$INPUT_DIR/text.zst" | zstdcat) \
+    $ALLOWED_PIPE \
     -- \
     "$TMP_DIR/pipe_l2" text=t \
     $TMP_DIR/xml xml=x \
@@ -120,9 +148,16 @@ run_lid_parallel $OLJOBS openlid-v3 text <"$TMP_DIR/text" >"$FL1"
 
 # step3 collects all metadata
 echo $(date +"%T") step3: starting jsonl_muxdemux  1>&2
+# the first muxdemux will filter yet unfiltered lang.zst and metadata.zst with allowed.zst
+stream_allowed_if_exists
 python -m hplt_textpipes.utils.jsonl_muxdemux \
     <(rclone cat "$INPUT_DIR/metadata.zst" | zstdcat | python -m hplt_textpipes.stage3.add_id -) \
     <(rclone cat  "$INPUT_DIR/lang.zst" | zstdcat | jq -c '{"openlid-v2":.}') \
+    $ALLOWED_PIPE \
+    -- \
+    - '*' \
+| python -m hplt_textpipes.utils.jsonl_muxdemux \
+    - \
     "$FHTMLMETA" \
     "$FL2" \
     "$FL1" \
@@ -137,5 +172,6 @@ for pid in "${pids[@]}"; do
     wait "$pid"
 done
 
+echo "$(date +"%T") checking outputs"  1>&2
 check_outputs
 echo $(date +"%T") "all done" 1>&2

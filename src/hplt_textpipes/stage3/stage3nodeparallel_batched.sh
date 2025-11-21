@@ -10,6 +10,7 @@ mkdir $LOGDIR
 
 filter_done() {
   while read -r line; do
+    FIN=`echo "$line" | sed -r 's/^[0-9]+ +//'`
     fdone=$(stage3getoutdir.sh "${FIN}" "${OUTDIR}")/.done
     if [ ! -f "$fdone" ]; then
       echo "$line"
