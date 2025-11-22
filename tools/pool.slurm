@@ -14,16 +14,13 @@
 #SBATCH --cpus-per-task=128
 #SBATCH --mem-per-cpu=2048M
 
-set -x;
-
 BASE=/scratch/project_465002259;
-cd ${BASE};
 
 if [ -z "${1}" ]; then
   echo "pool.slurm: missing argument (input directory); exit." >&2;
   exit 1;
 fi
-if [ ! -d ${1} -o ! -f ${1}/text.zst ]; then
+if [ ! -d ${1} ]; then
   echo "pool.slurm: invalid input directory ${1}; exit." >&2;
   exit 1;
 fi
@@ -31,18 +28,19 @@ input=$(realpath --strip ${1});
      
 CORES=${SLURM_CPUS_ON_NODE:-8};
 
-PYTHON=/scratch/project_465002259/oe/local;
+PYTHON=${BASE}/oe/local;
 if [ ! -f ${PYTHON}/bin/activate ]; then
   echo "pool.slurm: invalid Python environment ${PYTHON}; exit." >&2;
   exit 1;
 fi
 module reset;
-module load parallel cray-python;
+module load LUMI parallel cray-python;
 source ${PYTHON}/bin/activate;
 
-CODE=/scratch/project_465002259/oe/textpipes;
+CODE=${BASE}/oe/textpipes;
+export CODE;
 if [ ! -f ${CODE}/tools/zstdconcat.py ]; then
-  echo "pool.slurm: missing source code in /scratch/project_465002259/oe; exit." >&2;
+  echo "pool.slurm: missing source code in ${BASE}/oe; exit." >&2;
   exit 1;
 fi
 
@@ -62,7 +60,7 @@ echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] pool.slurm: with ${CORES} cores."
 function run() {
   local path=${1};
   local command="${CODE}/tools/zstdconcat.py --compress ${path}/markup.zst";
-  if [ -f ${path}/text.zst -a -f ${path}/lang.zst -a -f ${path}/metadata.zst ]; then
+  if [ -f ${path}/xml.zst -a -f ${path}/md.zst ]; then
     command="${command} ${path}/xml.zst ${path}/md.zst";
     eval ${command};      
   else
@@ -78,8 +76,8 @@ PARALLEL="${PARALLEL} --group --jobs ${CORES}";
 #
 # finally, iterate through all the batches in this crawl
 #
-find ${input} -name text.zst | sed "s/text.zst$//g" | xargs echo
-#| eval ${PARALLEL} run {};
+find ${input} -name text.zst | sed "s,/text.zst$,,g" \
+| eval ${PARALLEL} run {};
 
 echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] pool.slurm: all processing complete."
 exit 0;
