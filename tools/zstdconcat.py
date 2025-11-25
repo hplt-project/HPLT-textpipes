@@ -69,6 +69,68 @@ def lid(text, identity, model):
   return {"lang": [_.removeprefix("__label__") for _ in result[0]],
           "prob": [float(round(_, 4)) for _ in result[1]]};
 
+def pool(result, lids, i, outputs):
+  if result is None or "t" not in result:
+    print("zstdconcat.py: missing text field (#{}); exit"
+          "".format(i),
+          file = sys.stderr, flush = True);
+    sys.exit(1);
+
+  text = result["t"];
+  if len(lids):
+    try:
+      for identity, model in lids:
+        result[identity] = lid(text, identity, model);
+    except Exception as error:
+      print("zstdconcat.py: error in lid {} (#{}); exit"
+            "".format(identity, i),
+            file = sys.stderr, flush = True);
+      print("".join(traceback.format_exception(error)),
+            file = sys.stderr, flush = True);
+      sys.exit(1);
+
+  md = None;
+  if "x" in result:
+    _ = result["x"];
+  try:
+    if _ not in {None, ""}:
+      md = process_single(_, line_num = i, raw = True, verbose = False);
+  except Exception as error:
+    print("zstdconcat.py: MD extraction failure, line #{} ({})."
+          "".format(i, error),
+          file = sys.stderr, flush = True);
+    print("".join(traceback.format_exception(error)),
+          file = sys.stderr, flush = True);
+  result["md"] = md;
+
+  if "f" not in result or "u" not in result or "ts" not in result:
+    print("zstdconcat.py: missing key(s) for id (#{}); exit"
+          "".format(i),
+          file = sys.stderr, flush = True);
+    sys.exit(1);
+  result["id"] = xxh128_hexdigest(result["f"] + result["u"] + result["ts"]);
+  result["text"] = result.pop("t");
+
+  if "x" in result: result["xml"] = result.pop("x");
+  else: result["xml"] = None;
+  if "htmllang" in result: result["html_lang"] = result.pop("htmllang");
+  _ = {"lang": result["lang"]};
+  result.pop("lang");
+  if "prob" in result:
+    _["prob"] = result["prob"];
+    result.pop("prob");
+  result["openlid-v2"] = _;
+
+  outputs["text"].write(orjson.dumps({"text": result["text"]},
+                                     option = orjson.OPT_APPEND_NEWLINE));
+  result.pop("text");
+  markup = dict();
+  for _ in ["xml", "md"]:
+    if _ in result: markup[_] = result[_]; result.pop(_);
+  outputs["markup"].write(orjson.dumps(markup,
+                                     option = orjson.OPT_APPEND_NEWLINE));
+  outputs["metadata"].write(orjson.dumps(result, option = orjson.OPT_APPEND_NEWLINE));
+
 def main():
 
   start = time.time();
@@ -82,11 +144,11 @@ def main():
   parser.add_argument("--lid", action = "append", default = []);
   parser.add_argument("--pool", type = str);
   parser.add_argument("--compress", type = str);
+  parser.add_argument("--bin", type = str);
   parser.add_argument("inputs", nargs = "*");
   arguments = parser.parse_args();
 
   io.DEFAULT_BUFFER_SIZE = arguments.buffer;
-  mode = arguments.mode;
   outputs = dict();
   if arguments.pool:
     if not os.path.isdir(arguments.pool):
@@ -117,6 +179,7 @@ def main():
   #
   # increase output buffer size
   #
+  mode = arguments.mode;
   if arguments.compress is not None:
     output = io.BufferedWriter(zstandard.open(arguments.compress, "wb"),
                                buffer_size = arguments.buffer);
@@ -140,7 +203,9 @@ def main():
         "".format("filtering" if filter is not None else "reading",
                   len(streams)),
         file = sys.stderr, flush = True);
-
+  #
+  # initialize fastText model(s) if requested
+  #
   lids = [];
   if len(arguments.lid):
     import fasttext;
@@ -160,7 +225,9 @@ def main():
             "".format(identity),
             file = sys.stderr, flush = True);
       sys.exit(1);
-      
+  #
+  # process one document at a time, aligned across multiple files
+  #
   n, f, s = len(streams), 0, 0;
   if n:
     for i, line in enumerate(streams[0]):
@@ -176,7 +243,9 @@ def main():
           for stream in streams[1:]: stream.readline();
           f += 1;
           continue;
-        
+      #
+      # collect and massage all line-aligned chunks
+      #
       line = line.rstrip();
       if mode == "json": chunks.append(parse(line));
       elif n > 1: chunks.append(line[:-1]);
@@ -195,7 +264,9 @@ def main():
         else:
           chunks.append(b"," if mode == "bytes" else ",");
           chunks.append(_.rstrip()[1:]);
-
+      #
+      # finally, combine into one json representation, with minimal copying
+      #
       if mode == "json":
         if None in chunks:
           s += 1;
@@ -207,79 +278,18 @@ def main():
         
       #
       # optionally, hard-wire pool-level annotation and normalization:
-      # + assign unique document id
-      # + try to convert XML to markdown
-      # + "t" -> "text", "x" -> "xml", "htmllang" -> "html_lang"
-      # + write out textual represtations as separate files
       #
       if arguments.pool is not None:
         if mode != "json": result = parse(result);
-        if result is None or "t" not in result:
-          print("zstdconcat.py: missing text field (#{}); exit"
-                "".format(i),
-                file = sys.stderr, flush = True);
-          sys.exit(1);
-
-        text = result["t"];
-        if len(lids):
-          try:
-            for identity, model in lids:
-              result[identity] = lid(text, identity, model);
-          except Exception as error:
-            print("zstdconcat.py: error in lid {} (#{}); exit"
-                  "".format(identity, i),
-                  file = sys.stderr, flush = True);
-            print("".join(traceback.format_exception(error)),
-                  file = sys.stderr, flush = True);
-            sys.exit(1);
-
-        md = None;
-        if "x" in result:
-          _ = result["x"];
-        try:
-          if _ not in {None, ""}:
-            md = process_single(_, line_num = i, raw = True, verbose = False);
-        except Exception as error:
-          print("zstdconcat.py: MD extraction failure, line #{} ({})."
-                "".format(i, error),
-                file = sys.stderr, flush = True);
-          print("".join(traceback.format_exception(error)),
-                file = sys.stderr, flush = True);
-        result["md"] = md;
-            
-        if "f" not in result or "u" not in result or "ts" not in result:
-          print("zstdconcat.py: missing key(s) for id (#{}); exit"
-                "".format(i),
-                file = sys.stderr, flush = True);
-          sys.exit(1);
-        result["id"] = xxh128_hexdigest(result["f"] + result["u"] + result["ts"]);
-        result["text"] = result.pop("t");
-        
-        if "x" in result: result["xml"] = result.pop("x");
-        else: result["xml"] = None;
-        if "htmllang" in result: result["html_lang"] = result.pop("htmllang");
-        _ = {"lang": result["lang"]};
-        result.pop("lang");
-        if "prob" in result:
-          _["prob"] = result["prob"];
-          result.pop("prob");
-        result["openlid-v2"] = _;
-        
-        outputs["text"].write(orjson.dumps({"text": result["text"]},
-                                           option = orjson.OPT_APPEND_NEWLINE));
-        result.pop("text");
-        markup = dict();
-        for _ in ["xml", "md"]:
-          if _ in result: markup[_] = result[_]; result.pop(_);
-        outputs["markup"].write(orjson.dumps(markup,
-                                           option = orjson.OPT_APPEND_NEWLINE));
-        outputs["metadata"].write(orjson.dumps(result, option = orjson.OPT_APPEND_NEWLINE));
+        pool(result, lids, i, outputs)
       else:
         if mode == "json":
           output.write(orjson.dumps(result, option = orjson.OPT_APPEND_NEWLINE));
         else:
           output.write(result + ("\n" if mode == "string" else b"\n"));
-
+  #
+  # wrap up: close all output streams
+  #
   if filter is not None: filter.close();
   for _ in streams: _.close();
   output.close();
