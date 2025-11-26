@@ -30,14 +30,16 @@ done < paths > inputfiles.txt
 # Run a single input streaming process per batch in the background.
 # s3cmd get's are executed sequentially.
 while read -r SOURCEFILE; do
-    s3cmd get "$SOURCEFILE" - > "${SOURCEFILE#s3://}"
+    s3cmd get --max-retries=30 "$SOURCEFILE" - \
+          > "${SOURCEFILE#s3://}" 2>> download.log
+    echo "$? $SOURCEFILE" >> download_exit_codes.log
 done < paths &
 
 # stream the PDF and HTML output
-s3cmd --progress --multipart-chunk-size-mb=1024 \
+s3cmd --progress --multipart-chunk-size-mb=1024 --max-retries=30 \
       put - $S3_OUTPUT_PREFIX/$BATCH_ID/pdf.warc.gz \
       < $OUTPUT_DIR/pdf.warc.gz &> upload.pdf.log &
-s3cmd --progress --multipart-chunk-size-mb=1024 \
+s3cmd --progress --multipart-chunk-size-mb=1024 --max-retries=30 \
       put - $S3_OUTPUT_PREFIX/$BATCH_ID/html.zst \
       < $OUTPUT_DIR/html.zst &> upload.html.log &
 
@@ -58,9 +60,15 @@ s3cmd --progress put $OUTPUT_DIR/metadata.zst \
 s3cmd --progress put $OUTPUT_DIR/robotstxt.warc.gz \
       $S3_OUTPUT_PREFIX/$BATCH_ID/robotstxt.warc.gz &> upload.robotstxt.log
 
+# This isn't necessary - if warc2text has exited but there's still data
+# waiting in the pipe, the upload process won't exit.
+# Also:
+# - the output directory doesn't contain anything that hasn't been uploaded
+#   yet (after the above non-background upload processes finish)
+# - the input directory isn't necessary if warc2text has exited.
 # wait for all the streaming processes to complete
-echo "Waiting for the streaming to complete..."
-wait
+# echo "Waiting for the streaming to complete..."
+# wait
 
 # delete the input and output files
 while read -r INPUTFILE; do
