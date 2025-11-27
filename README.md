@@ -50,8 +50,9 @@ stage2download.sh
 ### Stage1 (a.k.a. warc2html)
 
 This stage extracts htmls, pdfs and various metadata from WARC files.
+Both the input and output files are streamed from/to LUMI-O.
 
-TBD: instructions for stage1 running on LUMI
+[Instructions for running](./tools/stage1-lumi/README.md)
 
 ### Stage2 (a.k.a. html2text)
 
