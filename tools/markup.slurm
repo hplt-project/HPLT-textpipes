@@ -1,10 +1,10 @@
 #!/bin/bash
 
 #
-#
+# for i in pool/wide000*; do echo sbatch ../oe/textpipes/tools/markup.slurm $i; done
 #
 
-#SBATCH --job-name=pool
+#SBATCH --job-name=markup
 #SBATCH --output=log/%x-%j.out
 #SBATCH --partition=small
 #SBATCH --account=project_465002259
@@ -14,14 +14,16 @@
 #SBATCH --cpus-per-task=128
 #SBATCH --mem-per-cpu=2048M
 
+set -x
+
 BASE=/scratch/project_465002259;
 
 if [ -z "${1}" ]; then
-  echo "pool.slurm: missing argument (input directory); exit." >&2;
+  echo "markup.slurm: missing argument (input directory); exit." >&2;
   exit 1;
 fi
 if [ ! -d ${1} ]; then
-  echo "pool.slurm: invalid input directory ${1}; exit." >&2;
+  echo "markup.slurm: invalid input directory ${1}; exit." >&2;
   exit 1;
 fi
 input=$(realpath --strip ${1});
@@ -30,7 +32,7 @@ CORES=${SLURM_CPUS_ON_NODE:-8};
 
 PYTHON=${BASE}/oe/local;
 if [ ! -f ${PYTHON}/bin/activate ]; then
-  echo "pool.slurm: invalid Python environment ${PYTHON}; exit." >&2;
+  echo "markup.slurm: invalid Python environment ${PYTHON}; exit." >&2;
   exit 1;
 fi
 module reset;
@@ -40,22 +42,22 @@ source ${PYTHON}/bin/activate;
 CODE=${BASE}/oe/textpipes;
 export CODE;
 if [ ! -f ${CODE}/tools/zstdconcat.py ]; then
-  echo "pool.slurm: missing source code in ${BASE}/oe; exit." >&2;
+  echo "markup.slurm: missing source code in ${BASE}/oe; exit." >&2;
   exit 1;
 fi
 
 if [ ! -f ${HOME}/.cache/hplt/openlid-v3.bin ]; then
-  echo "pool.slurm: missing model file for OpenLID v3; exit." >&2;
+  echo "markup.slurm: missing model file for OpenLID v3; exit." >&2;
   exit 1;
 fi
 if [ ! -f ${HOME}/.cache/hplt/glotlid-v3.bin ]; then
-  echo "pool.slurm: missing model file for GlotLID v3; exit." >&2;
+  echo "markup.slurm: missing model file for GlotLID v3; exit." >&2;
   exit 1;
 fi
 
-echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] pool.slurm: root in $(pwd);"
-echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] pool.slurm: processing ${input};"
-echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] pool.slurm: with ${CORES} cores."
+echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] markup.slurm: root in $(pwd);"
+echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] markup.slurm: processing ${input};"
+echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] markup.slurm: with ${CORES} cores."
 
 function run() {
   local path=${1};
@@ -79,5 +81,5 @@ PARALLEL="${PARALLEL} --group --jobs ${CORES}";
 find ${input} -name text.zst | sed "s,/text.zst$,,g" \
 | eval ${PARALLEL} run {};
 
-echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] pool.slurm: all processing complete."
+echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] markup.slurm: all processing complete."
 exit 0;
