@@ -2,6 +2,7 @@
 
 #
 # for i in pool/wide000*; do echo sbatch ../oe/textpipes/tools/markup.slurm $i; done
+# for i in pool/CC-*; do sbatch /scratch/project_465002259/oe/textpipes/tools/markup.slurm $i; done
 #
 
 #SBATCH --job-name=markup
@@ -62,7 +63,7 @@ echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] markup.slurm: with ${CORES} cores."
 function run() {
   local path=${1};
   local command="${CODE}/tools/zstdconcat.py --compress ${path}/markup.zst";
-  if [ -f ${path}/xml.zst -a -f ${path}/md.zst ]; then
+  if [ -e ${path}/xml.zst -a -f ${path}/md.zst ]; then
     command="${command} ${path}/xml.zst ${path}/md.zst";
     eval ${command};      
   else
