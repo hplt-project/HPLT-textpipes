@@ -20,9 +20,11 @@ class sharder():
   #
   # borrowed from monotextor, by jaume zaragoza (prompsit)
   #
-  def __init__(self, path, size = 1e11, prefix = None, level = 3, cores = 1):
+  def __init__(self, path, size = 1e11, buffer = 4 * 1024 ** 2,
+               prefix = None, level = 3, cores = 1):
     self.compressor = zstandard.ZstdCompressor(level = level, threads = cores);
     self.size = size;
+    self.buffer = buffer;
     self.prefix = prefix;
     if not os.path.isdir(path): os.mkdir(path);
     self.path = path;
@@ -37,7 +39,8 @@ class sharder():
     self.files += 1;
     _ = (self.prefix + "_" if self.prefix is not None else "");
     file = os.path.join(self.path, _ + str(self.files) + ".jsonl.zst");
-    self.stream = io.BufferedWriter(zstandard.open(file, "wb", cctx = self.compressor));
+    self.stream = io.BufferedWriter(zstandard.open(file, "wb", cctx = self.compressor),
+                                    buffer_size = self.buffer);
 
   def write(self, chunk):
     if self.bytes >= self.size: self.next();
@@ -50,6 +53,9 @@ class sharder():
 
   def __del__(self):
     self.close();
+
+def now():
+  return time.strftime("%H:%M:%S (%d-%b-%y)").lower();
 
 def connect(path, mode, pipe, buffer):
   if not os.path.isfile(path):
@@ -80,13 +86,13 @@ def parse(chunk, trace, i):
     result = orjson.loads(chunk);
   except UnicodeError as error:
     if trace > 1:
-      print("zstdconcat.py: failed to decode bytes object {}; skip."
-            "".format(chunk),
+      print("[{}] zstdconcat.py: failed to decode bytes object {}; skip."
+            "".format(now(), chunk),
             file = sys.stderr, flush = True);
   except Exception as error:
     if trace > 1:
-      print("zstdconcat.py: failed to parse string {}; skip."
-            "".format(chunk),
+      print("[{}] zstdconcat.py: failed to parse string {}; skip."
+            "".format(now, chunk),
             file = sys.stderr, flush = True);
   return result;
 
@@ -133,8 +139,8 @@ def pool(result, lids, i, md, outputs):
       if _ not in {None, ""}:
         result["md"] = md(_, line_num = i, raw = True, verbose = False);
     except Exception as error:
-      print("zstdconcat.py: MD extraction failure, line #{} ({})."
-            "".format(i, error),
+      print("[{}] zstdconcat.py: MD extraction failure, line #{} ({})."
+            "".format(now(), i, error),
             file = sys.stderr, flush = True);
       print("".join(traceback.format_exception(error)),
             file = sys.stderr, flush = True);
@@ -171,7 +177,7 @@ OPENLID_PATTERN = \
   {"bytes": regex.compile(b"\"openlid-v3\": ?\\{\"lang\": ?\\[\"([a-z]{3}_[A-Z][a-z]{3})\","),
    "string": regex.compile("\"openlid-v3\": ?\\{\"lang\": ?\\[\"([a-z]{3}_[A-Z][a-z]{3})\",")};
 
-def bin(result, bins, mode, size, level, cores, trace, i):
+def bin(result, bins, mode, size, buffer, level, cores, trace, i):
   lang = None;
   if mode == "json":
     if "openlid-v3" in result:
@@ -184,19 +190,19 @@ def bin(result, bins, mode, size, level, cores, trace, i):
         lang = _.group(1).decode("utf-8") if mode == "bytes" else _.group(1);
       except:
         if trace > 1:
-          print("zstdconcat.py: failed to decode JSON (line #{}); skip.."
-                "".format(i),
+          print("[{}] zstdconcat.py: failed to decode JSON (line #{}); skip."
+                "".format(now(), i),
                 file = sys.stderr, flush = True);
         return 1;
   if lang is None:
     if trace > 1:
-      print("zstdconcat.py: failed to extract LID value (line #{}); skip."
-            "".format(i),
+      print("[{}] zstdconcat.py: failed to extract LID value (line #{}); skip."
+            "".format(now(), i),
             file = sys.stderr, flush = True);
     return 1;
   if lang not in bins:
     bins[lang] = sharder(os.path.join(bins["path"], lang), size = size,
-                         level = level, cores = cores);
+                         buffer = buffer, level = level, cores = cores);
   bins[lang].write(result + ("\n" if mode == "string" else b"\n"));
   return 0;
 
@@ -285,8 +291,9 @@ def main():
                      arguments.pipe, arguments.buffer);
   
   if arguments.trace > 0:
-    print("zstdconcat.py: {} {} input {}(s)."
-          "".format("filtering" if filter is not None else "reading",
+    print("[{}] zstdconcat.py: {} {} input {}(s)."
+          "".format(now(),
+                    "filtering" if filter is not None else "reading",
                     len(arguments.inputs),
                     "file" if arguments.bin is None else "directory"),
           file = sys.stderr, flush = True);
@@ -321,24 +328,24 @@ def main():
     # open all input files and connect to a decompressing stream or pipe
     #
     if path is not None:
-      streams = [connect(_, mode, arguments.pipe, arguments.buffer)
-                 for _ in glob.glob(os.path.join(path, "*.zst"))];
+      inputs = glob.glob(os.path.join(path, "*.zst"));
       if arguments.trace > 0:
-        print("zstdconcat.py: reading {} files(s) in {}."
-              "".format(len(streams), path),
+        print("[{}] zstdconcat.py: reading {} files(s) in {}."
+              "".format(now(), len(inputs), path),
               file = sys.stderr, flush = True);
     else:
-      streams = [connect(_, mode, arguments.pipe, arguments.buffer)
-                 for _ in arguments.inputs];
+      inputs = arguments.inputs;
+    streams = [connect(_, mode, arguments.pipe, arguments.buffer)
+               for _ in inputs];
     #
     # process one document at a time, aligned across multiple files
     #
-    n, f, s = len(streams), 0, 0;
+    i, n, f, s = 0, len(streams), 0, 0;
     if n:
       for i, line in enumerate(streams[0]):
         if not line.startswith("{" if mode == "string" else b"{"):
           print("zstdconcat.py: invalid JSON object {} ({}: #{}); exit"
-                "".format(line, arguments.inputs[0], i),
+                "".format(line, inputs[0], i),
                 file = sys.stderr, flush = True);
           sys.exit(1);
         chunks = [];
@@ -369,12 +376,12 @@ def main():
           _ = stream.readline();
           if not len(_):
             print("zstdconcat.py: premature end of file on {} (#{}); exit"
-                  "".format(arguments.inputs[j + 1], i),
+                  "".format(inputs[j + 1], i),
                   file = sys.stderr, flush = True);
             sys.exit(1);
           if not _.startswith("{" if mode == "string" else b"{"):
             print("zstdconcat.py: invalid JSON object {} ({}: #{}); exit"
-                  "".format(_, arguments.inputs[j + 1], i),
+                  "".format(_, inputs[j + 1], i),
                   file = sys.stderr, flush = True);
             sys.exit(1);
           if mode == "json": chunks.append(parse(_, arguments.trace, i));
@@ -408,7 +415,7 @@ def main():
         # or merge files and apply per-language binning, for monotexting
         #
         elif arguments.bin is not None:
-          s += bin(result, bins, mode, arguments.size,
+          s += bin(result, bins, mode, arguments.size, arguments.buffer,
                    arguments.level, arguments.cores, arguments.trace, i);
         else:
           if mode == "json":
@@ -425,8 +432,8 @@ def main():
   for _ in bins.values():
     if isinstance(_, sharder): _.close();
   if arguments.trace > 0:
-    print("zstdconcat.py: processed {} {}{}input lines(s); {:.2f} seconds."
-          "".format(i + 1,
+    print("[{}] zstdconcat.py: processed {} {}{}input lines(s); {:.2f} seconds."
+          "".format(now(), i + 1,
                     f"(- {f} filtered) " if arguments.filter else "",
                     f"(- {s} skipped) " if s > 0 else "",
                     time.time() - start),
