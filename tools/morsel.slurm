@@ -1,18 +1,13 @@
 #!/bin/bash
 
-#
-# for i in pool/wide000*; do echo sbatch ../oe/textpipes/tools/morsel.slurm $i; done
-# for i in pool/CC-*; do sbatch /scratch/project_465002259/oe/textpipes/tools/morsel.slurm $i; done
-#
-
 #SBATCH --job-name=morsel
 #SBATCH --output=log/%x-%j.out
 #SBATCH --partition=small
 #SBATCH --account=project_465002259
-#SBATCH --time=12:00:00
+#SBATCH --time=48:00:00
 #SBATCH --mail-type=FAIL
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=128
+#SBATCH --cpus-per-task=64
 #SBATCH --mem-per-cpu=2G
 
 set -x
