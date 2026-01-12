@@ -127,6 +127,7 @@ to enable partial download and random access.
 
 
 [Instructions for running](src/hplt_textpipes/stage3/README.md)
+TBD: @Jaume how the binary masks are prepared for robottxt filtering
 
 ### Stage4: TBD
 
