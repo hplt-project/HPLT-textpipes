@@ -1,4 +1,10 @@
-# (InternetArchive crawls only) Stage3: preparation of allowed.zst
+
+# Stage3: reproduction instructions
+
+<details>
+<summary>## (InternetArchive crawls only) Stage3: preparation of allowed.zst
+</summary>
+
 To remove documents that are not compatible with robots.txt start with generating allowed.zst files which are used for filtering. This is required for InternetArchive crawls only, CommonCrawl crawls are checked against robots.txt while crawling.
 
 ## Prepare for robots.txt
@@ -19,7 +25,7 @@ To run it use `sbatch`.
 
 In each input directory this annotation process generates an additional file `allowed.zst`, which is line-parallel to other input files and contains a binary mask describning compatability of each document with robots.txt. If present, this file will be used when running stage3 to remove incompatible documents.
 
-# Stage3: reproduction instructions
+</details>
 
 ## Prepare LUMI environment
 Activate LUMI modules and python environment:
