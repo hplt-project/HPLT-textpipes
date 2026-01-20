@@ -138,3 +138,8 @@ After text and metadata are extracted from web crawls, they undergo further clea
 Code and description are available in a separate repository:
 - [Monotextor](https://github.com/hplt-project/monotextor-slurm)
 
+
+
+# Acknowledgements
+
+This project has received funding from the European Union’s Horizon Europe research and innovation programme under grant agreement No 101070350 and from UK Research and Innovation (UKRI) under the UK government’s Horizon Europe funding guarantee [grant number 10052546]
