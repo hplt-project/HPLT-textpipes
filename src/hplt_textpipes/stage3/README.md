@@ -2,7 +2,7 @@
 # Stage3: reproduction instructions
 
 <details>
-<summary>## (InternetArchive crawls only) Stage3: preparation of allowed.zst
+<summary> <h2> (InternetArchive only) Generate allowed.zst   </h2>
 </summary>
 
 To remove documents that are not compatible with robots.txt start with generating allowed.zst files which are used for filtering. This is required for InternetArchive crawls only, CommonCrawl crawls are checked against robots.txt while crawling.
