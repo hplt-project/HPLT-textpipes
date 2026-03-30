@@ -2,7 +2,6 @@
 
 This repository contains code and description of how text and metadata extraction for [HPLT v4 datasets](https://hplt-project.org/datasets/v4.0) was done.
 
-TBD: fix the link above, add relevant links 
 
 ## Install on LUMI
 Load the required LUMI modules:
@@ -129,9 +128,8 @@ to enable partial download and random access.
 
 [Instructions for running](src/hplt_textpipes/stage3/README.md)
 
-TBD: @Jaume how the binary masks are prepared for robottxt filtering
 
-### Stage4: TBD
+### Stage4: TBD @oepen
 
 ## Further processing
 After text and metadata are extracted from web crawls, they undergo further cleaning and deduplication. 
