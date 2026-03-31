@@ -56,7 +56,7 @@ def main():
 
   parser = argparse.ArgumentParser(description = "re-package compressed files into ");
   parser.add_argument("--cores", type = int, default = 8);
-  parser.add_argument("--level", type = int, default = 10);
+  parser.add_argument("--level", type = int, default = 3);
   parser.add_argument("--size", type = int, default = 1e11);
   parser.add_argument("--buffer", type = int, default = 4 * 1024 ** 2);
   parser.add_argument("--target", default = ".");
