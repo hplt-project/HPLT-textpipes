@@ -103,7 +103,7 @@ def shipout(document, blocked, noisy, clean, size, buffer, level, cores, trace, 
     print("[{}] merge.py: missing obligatory field(s) (line #{}); skip."
           "".format(now(), i),
           file = sys.stderr, flush = True);
-    return 1;
+    return;
 
   filter = document["filter"];
   wds = document["doc_scores"][0];
@@ -112,12 +112,16 @@ def shipout(document, blocked, noisy, clean, size, buffer, level, cores, trace, 
   if filter == "optout":
     output = blocked;
   elif filter != "keep":
+    noisy["f"] += 1;
     output = noisy;
   elif wds < 0.5:
+    noisy["w"] += 1;
     output = noisy;
   elif openlid["prob"][0] < 0.5:
+    noisy["p"] += 1;
     output = noisy;
   elif not compatible(openlid["lang"][0], glotlid["lang"][0]):
+    noisy["l"] += 1;
     output = noisy;
   else:
     output = clean;
@@ -127,7 +131,6 @@ def shipout(document, blocked, noisy, clean, size, buffer, level, cores, trace, 
                           prefix = str(wds), level = level, cores = cores);
   output[wds].write(orjson.dumps(document, option = orjson.OPT_APPEND_NEWLINE));
   output["n"] += 1;
-  return 0;
 
 def main():
 
@@ -157,7 +160,7 @@ def main():
           "".format(arguments.noisy),
           file = sys.stderr, flush = True);
     sys.exit(1);
-  noisy = {"path": arguments.noisy, "n": 0};
+  noisy = {"path": arguments.noisy, "f": 0, "w": 0, "p": 0, "l": 0, "n": 0};
   if not os.path.isdir(arguments.clean):
     print("merge.py: invalid --clean target directory {}; exit."
           "".format(arguments.clean),
@@ -224,11 +227,11 @@ def main():
   for _ in clean.values():
     if isinstance(_, sharder): _.close();
   if arguments.trace > 0:
-    print("[{}] merge.py: processed {} {}{}input lines(s); {:.2f} seconds."
+    print("[{}] merge.py: {} documents; blocked: {}; noisy: {} + {} + {} + {} = {}; clean: {}; {:.2f} seconds."
           "".format(now(), i + 1,
-                    f"(- {f} filtered) " if arguments.filter else "",
-                    f"(- {s} skipped) " if s > 0 else "",
-                    time.time() - start),
+                    blocked["n"],
+                    noisy["f"], noisy["w"], noisy["p"], noisy["l"], noisy["n"],
+                    clean["n"], time.time() - start),
           file = sys.stderr, flush = True);
   sys.exit(0);
 
