@@ -5,6 +5,7 @@
 import argparse;
 import glob;
 import io;
+import json;
 import math;
 import orjson;
 import os;
@@ -99,7 +100,8 @@ def parse(chunk, trace, i):
             file = sys.stderr, flush = True);
   return result;
 
-def shipout(document, blocked, noisy, clean, size, buffer, level, cores, trace, i):
+def shipout(document, blocked, noisy, clean, statistics,
+            size, buffer, level, cores, trace, i):
   if ("filter" not in document
       or "doc_scores" not in document
       or "openlid_v3" not in document
@@ -109,39 +111,58 @@ def shipout(document, blocked, noisy, clean, size, buffer, level, cores, trace, 
           file = sys.stderr, flush = True);
     return;
 
+  c = len(document["text"]);
   filter = document["filter"];
   wds = document["doc_scores"][0];
   openlid = document["openlid_v3"];
   glotlid = document["glotlid_v3"];
   output = clean;
+  counts = statistics["clean"];
   if filter == "optout":
     output = blocked;
+    counts = statistics["blocked"];
   elif wds < 0.5:
     output = noisy;
-    noisy["wds"] += 1;
+    counts = statistics["noisy"];
+    counts["wds"]["documents"] += 1;
+    counts["wds"]["characters"] += c;
   elif openlid["prob"][0] < 0.5:
     output = noisy;
-    noisy["prob"] += 1;
+    counts = statistics["noisy"];
+    counts["prob"]["documents"] += 1;
+    counts["prob"]["characters"] += c;
   elif not compatible(openlid["lang"][0], glotlid["lang"][0]):
     output = noisy;
-    noisy["lid"] += 1;
+    counts = statistics["noisy"];
+    counts["lid"]["documents"] += 1;
+    counts["lid"]["characters"] += c;
   else:
     for _ in NOISE:
       if _ not in {"wds", "prob", "lid"} and filter.startswith(_):
         output = noisy;
-        noisy[_] += 1;
+        counts = statistics["noisy"];
+        counts[_]["documents"] += 1;
+        counts[_]["characters"] += c;
     #
     # guard against other, unknown .filter. values
     #
     if output != noisy and filter != "keep":
       output = noisy;
-      noisy["filter"] += 1;
+      counts = statistics["noisy"];
+      counts["filter"]["documents"] += 1;
+      counts["filter"]["characters"] += c;
   wds = math.floor(wds * 10);
   if wds not in output:
     output[wds] = sharder(output["path"], size = size, buffer = buffer,
                           prefix = str(wds), level = level, cores = cores);
   output[wds].write(orjson.dumps(document, option = orjson.OPT_APPEND_NEWLINE));
-  output["n"] += 1;
+  counts["documents"] += 1;
+  counts["characters"] += c;
+  #
+  # finally, update our running tallies
+  #
+  statistics["documents"] += 1;
+  statistics["characters"] += c;
 
 def main():
 
@@ -172,15 +193,13 @@ def main():
           "".format(now(), arguments.noisy),
           file = sys.stderr, flush = True);
     sys.exit(1);
-  noisy = {"path": arguments.noisy, "filter": 0, "n": 0};
-  for _ in NOISE: noisy[_] = 0;
+  noisy = {"path": arguments.noisy, "n": 0};
   if not os.path.isdir(arguments.clean):
     print("[{}] merge.py: invalid --clean target directory {}; exit."
           "".format(now(), arguments.clean),
           file = sys.stderr, flush = True);
     sys.exit(1);
   clean = {"path": arguments.clean, "n": 0};
-  
   #
   # first positional argument is directory containing document batches
   #
@@ -188,11 +207,22 @@ def main():
   #
   # process one batch at a time, pairing up documents and annotations
   #
-  n = 0;
+  total =  {"documents": 0, "characters": 0, "annotations": 0, "files": 0,
+            "blocked": {"documents": 0, "characters": 0},
+            "noisy": {"documents": 0, "characters": 0},
+            "clean": {"documents": 0, "characters": 0}};
+  for _ in NOISE: total["noisy"][_] = {"documents": 0, "characters": 0};
+  total["noisy"]["filter"] =  {"documents": 0, "characters": 0};
   for file in files:
+    statistics = {"documents": 0, "characters": 0, "annotations": 0,
+                  "blocked": {"documents": 0, "characters": 0},
+                  "noisy": {"documents": 0, "characters": 0},
+                  "clean": {"documents": 0, "characters": 0}};
+    for _ in NOISE: statistics["noisy"][_] = {"documents": 0, "characters": 0};
+    statistics["noisy"]["filter"] =  {"documents": 0, "characters": 0};
     name = os.path.basename(file);
     if arguments.trace > 0:
-      print("[{}] merge.py: reading documents from {}, with {} annotations(s)."
+      print("[{}] merge.py: reading documents from {}, with {:,} annotations(s)."
             "".format(now(), name, len(arguments.inputs) - 1),
             file = sys.stderr, flush = True);
     annotations = [];
@@ -235,7 +265,7 @@ def main():
       stream.close();
 
     if arguments.trace > 0:
-      print("[{}] merge.py: using {} annotations(s)."
+      print("[{}] merge.py: using {:,} annotations(s)."
             "".format(now(), sum(len(_) for _ in annotations)),
             file = sys.stderr, flush = True);
     
@@ -253,24 +283,42 @@ def main():
       id = document["id"];
       for key, table in zip(keys, annotations):
         annotation = table.get(id, None);
-        if annotation is not None: document[key] = annotation;
+        if annotation is not None:
+          document[key] = annotation;
+          statistics["annotations"] += 1;
         elif arguments.trace > 0:
-          print("[{}] merge.py: missing {} annotation for .id. {} ({}: #{}); exit."
+          print("[{}] merge.py: missing {} annotation for .id. {} ({}: #{}); skip."
                 "".format(now(), key, id, file, i),
                 file = sys.stderr, flush = True);
 
       #
       # interpret annotations and route into various output bins
       #
-      shipout(document, blocked, noisy, clean,
+      shipout(document, blocked, noisy, clean, statistics,
               arguments.size, arguments.buffer, arguments.level,
               arguments.cores, arguments.trace, i);
     documents.close();
-    n += (i + 1);
+    total["files"] += 1;
+    for key, value in statistics.items():
+      if isinstance(value, dict):
+        for _ in value.keys():
+          if isinstance(value[_], dict):
+            for __ in value[_].keys():
+              total[key][_][__] += value[_][__];
+          else:
+            total[key][_] += value[_];
+      else:
+        total[key] += statistics[key];
+    total[name] = statistics;
     if arguments.trace > 0:
-      print("[{}] merge.py: processed {} documents(s)."
+      print("[{}] merge.py: processed {:,} documents(s)."
             "".format(now(), i + 1),
             file = sys.stderr, flush = True);
+
+  for _ in ["zst", "zstd", "jsonl"]:
+    if name.endswith(_): name = name[:-len(_)];
+  with open(os.path.join(arguments.inputs[0], "." + name + "json"), "w", encoding = "utf-8") as _:
+    json.dump(total, _, indent = 2);
 
   #
   # wrap up: close all input and output streams
@@ -282,12 +330,14 @@ def main():
   for _ in clean.values():
     if isinstance(_, sharder): _.close();
   if arguments.trace > 0:
-    print("[{}] merge.py: {} documents; {} blocked; {} (+ {}) = {} noisy; {} clean; {:.2f} seconds."
-          "".format(now(), n,
-                    blocked["n"],
-                    " + ".join(str(noisy.get(_, 0)) for _ in NOISE),
-                    noisy["filter"], noisy["n"],
-                    clean["n"], time.time() - start),
+    print("[{}] merge.py: {:,} documents in {:,} file(s); {:,} blocked; {} (+ {:,}) = {:,} noisy; {:,} clean; {:.2f} seconds."
+          "".format(now(), total["documents"], total["files"],
+                    total["blocked"]["documents"],
+                    " + ".join("{:,}".format(total["noisy"][_]["documents"] if _ in total["noisy"] else 0)
+                               for _ in NOISE),
+                    total["noisy"]["filter"]["documents"],
+                    total["noisy"]["documents"], total["clean"]["documents"],
+                    time.time() - start),
           file = sys.stderr, flush = True);
   sys.exit(0);
 
