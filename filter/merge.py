@@ -16,6 +16,10 @@ import time;
 import traceback;
 import zstandard;
 
+NOISE = ["adult_ut1", "adult_text", "length",
+         "word_avg", "char_avg", "lang_ratio",
+         "wds", "prob", "lid"];
+
 class sharder():
   #
   # borrowed from monotextor, by jaume zaragoza (prompsit)
@@ -71,8 +75,8 @@ def compatible(openlid, glotlid):
 
 def connect(path, buffer):
   if not os.path.isfile(path):
-    print("merge.py: invalid input file {}; exit."
-          "".format(path),
+    print("[{}] merge.py: invalid input file {}; exit."
+          "".format(now(), path),
           file = sys.stderr, flush = True);
     sys.exit(1);
   _ = io.BufferedReader(zstandard.open(path, "rb"), buffer_size = buffer);
@@ -109,22 +113,29 @@ def shipout(document, blocked, noisy, clean, size, buffer, level, cores, trace, 
   wds = document["doc_scores"][0];
   openlid = document["openlid_v3"];
   glotlid = document["glotlid_v3"];
+  output = clean;
   if filter == "optout":
     output = blocked;
-  elif filter != "keep":
-    noisy["f"] += 1;
-    output = noisy;
   elif wds < 0.5:
-    noisy["w"] += 1;
     output = noisy;
+    noisy["wds"] += 1;
   elif openlid["prob"][0] < 0.5:
-    noisy["p"] += 1;
     output = noisy;
+    noisy["prob"] += 1;
   elif not compatible(openlid["lang"][0], glotlid["lang"][0]):
-    noisy["l"] += 1;
     output = noisy;
+    noisy["lid"] += 1;
   else:
-    output = clean;
+    for _ in NOISE:
+      if _ not in {"wds", "prob", "lid"} and filter.startswith(_):
+        output = noisy;
+        noisy[_] += 1;
+    #
+    # guard against other, unknown .filter. values
+    #
+    if output != noisy and filter != "keep":
+      output = noisy;
+      noisy["filter"] += 1;
   wds = math.floor(wds * 10);
   if wds not in output:
     output[wds] = sharder(output["path"], size = size, buffer = buffer,
@@ -141,6 +152,7 @@ def main():
   parser.add_argument("--level", type = int, default = 3);
   parser.add_argument("--size", type = int, default = 1e11);
   parser.add_argument("--buffer", type = int, default = 4 * 1024 ** 2);
+  parser.add_argument("--pattern", type = str, default = "*.zst");
   parser.add_argument("--blocked", type = str, required = True);
   parser.add_argument("--noisy", type = str, required = True);
   parser.add_argument("--clean", type = str, required = True);
@@ -150,76 +162,119 @@ def main():
 
   io.DEFAULT_BUFFER_SIZE = arguments.buffer;
   if not os.path.isdir(arguments.blocked):
-    print("merge.py: invalid --blocked target directory {}; exit."
-          "".format(arguments.blocked),
+    print("[{}] merge.py: invalid --blocked target directory {}; exit."
+          "".format(now(), arguments.blocked),
           file = sys.stderr, flush = True);
     sys.exit(1);
   blocked = {"path": arguments.blocked, "n": 0};
   if not os.path.isdir(arguments.noisy):
-    print("merge.py: invalid --noisy target directory {}; exit."
-          "".format(arguments.noisy),
+    print("[{}] merge.py: invalid --noisy target directory {}; exit."
+          "".format(now(), arguments.noisy),
           file = sys.stderr, flush = True);
     sys.exit(1);
-  noisy = {"path": arguments.noisy, "f": 0, "w": 0, "p": 0, "l": 0, "n": 0};
+  noisy = {"path": arguments.noisy, "filter": 0, "n": 0};
+  for _ in NOISE: noisy[_] = 0;
   if not os.path.isdir(arguments.clean):
-    print("merge.py: invalid --clean target directory {}; exit."
-          "".format(arguments.clean),
+    print("[{}] merge.py: invalid --clean target directory {}; exit."
+          "".format(now(), arguments.clean),
           file = sys.stderr, flush = True);
     sys.exit(1);
   clean = {"path": arguments.clean, "n": 0};
   
-  if arguments.trace > 0:
-    print("[{}] merge.py: reading {} input file(s)."
-          "".format(now(), len(arguments.inputs)),
-          file = sys.stderr, flush = True);
   #
-  # iterate over files provided on command line
+  # first positional argument is directory containing document batches
   #
-  annotations = [];
-  for i, file in enumerate(arguments.inputs[1:]):
-    stream = connect(file, arguments.buffer);
-    table = dict();
-    for j, line in enumerate(stream):
+  files = glob.glob(os.path.join(arguments.inputs[0], arguments.pattern));
+  #
+  # process one batch at a time, pairing up documents and annotations
+  #
+  n = 0;
+  for file in files:
+    name = os.path.basename(file);
+    if arguments.trace > 0:
+      print("[{}] merge.py: reading documents from {}, with {} annotations(s)."
+            "".format(now(), name, len(arguments.inputs) - 1),
+            file = sys.stderr, flush = True);
+    annotations = [];
+    keys = [];
+    for path in arguments.inputs[1:]:
+      _ = os.path.join(path, name);
+      stream = connect(_, arguments.buffer);
+      table = dict();
+      key = None;
+      for i, line in enumerate(stream):
+        if not line.startswith(b"{"):
+          print("[{}] merge.py: invalid JSON object {} ({}: #{}); exit."
+                "".format(now(), line, _, i),
+                file = sys.stderr, flush = True);
+          sys.exit(1);
+        annotation = parse(line.rstrip(), arguments.trace, i);
+        if "id" not in annotation:
+          print("[{}] merge.py: missing .id. in annotation ({}: #{}); skip."
+                "".format(now(), _, i),
+                file = sys.stderr, flush = True);
+        else:
+          if key is None:
+            if "bsc-edu-1.0" in annotation:
+              key = "bsc-edu-1.0";
+              keys.append("bsc-edu");
+            elif "finepdfs-edu" in annotation:
+              key = "finepdfs-edu";
+              keys.append(key);
+            elif "fw2hq" in annotation:
+              key = "fw2hq";
+              keys.append("fineweb2-hq");
+            elif "jql" in annotation:
+              key = "jql";
+              keys.append(key);
+            elif "propella-4b" in annotation:
+              key = "propella-4b";
+              keys.append(key);
+          table[annotation["id"]] = annotation[key]
+      annotations.append(table);
+      stream.close();
+
+    if arguments.trace > 0:
+      print("[{}] merge.py: using {} annotations(s)."
+            "".format(now(), sum(len(_) for _ in annotations)),
+            file = sys.stderr, flush = True);
+    
+    documents = connect(file, arguments.buffer);
+    #
+    # process one document at a time, aligned by .id. across multiple files
+    #
+    for i, line in enumerate(documents):
       if not line.startswith(b"{"):
-        print("merge.py: invalid JSON object {} ({}: #{}); exit."
-              "".format(line, arguments.inputs[i + 1], j),
+        print("[{}] merge.py: invalid JSON object {} ({}: #{}); exit."
+              "".format(now(), line, file, i),
               file = sys.stderr, flush = True);
         sys.exit(1);
-      annotation = parse(line.rstrip(), arguments.trace, i);
-      if "id" not in annotation:
-        print("merge.py: missing .id. in annotation ({}: #{}); skip."
-              "".format(arguments.inputs[i + 1], i),
-              file = sys.stderr, flush = True);
-      else:
-        _ = annotation["id"];
-        table[_] = annotation.pop("id");
-    annotations.append(table);
-    stream.close();
-      
-  documents = connect(arguments.inputs[0], arguments.buffer);
-  #
-  # process one document at a time, aligned by .id. across multiple files
-  #
-  for i, line in enumerate(documents):
-    if not line.startswith(b"{"):
-      print("merge.py: invalid JSON object {} ({}: #{}); exit."
-            "".format(line, arguments.inputs[0], i),
+      document = parse(line.rstrip(), arguments.trace, i);
+      id = document["id"];
+      for key, table in zip(keys, annotations):
+        annotation = table.get(id, None);
+        if annotation is not None: document[key] = annotation;
+        elif arguments.trace > 0:
+          print("[{}] merge.py: missing {} annotation for .id. {} ({}: #{}); exit."
+                "".format(now(), key, id, file, i),
+                file = sys.stderr, flush = True);
+
+      #
+      # interpret annotations and route into various output bins
+      #
+      shipout(document, blocked, noisy, clean,
+              arguments.size, arguments.buffer, arguments.level,
+              arguments.cores, arguments.trace, i);
+    documents.close();
+    n += (i + 1);
+    if arguments.trace > 0:
+      print("[{}] merge.py: processed {} documents(s)."
+            "".format(now(), i + 1),
             file = sys.stderr, flush = True);
-      sys.exit(1);
-    document = parse(line.rstrip(), arguments.trace, i);
-    for table in annotations:
-      annotation = table.get(id, None);
-      if annotation is not None: document |= annotation;
-    #
-    # interpret annotations and route into various output bins
-    #
-    shipout(document, blocked, noisy, clean,
-            arguments.size, arguments.buffer, arguments.level,
-            arguments.cores, arguments.trace, i);
+
   #
   # wrap up: close all input and output streams
   #
-  documents.close();
   for _ in blocked.values():
     if isinstance(_, sharder): _.close();
   for _ in noisy.values():
@@ -227,10 +282,11 @@ def main():
   for _ in clean.values():
     if isinstance(_, sharder): _.close();
   if arguments.trace > 0:
-    print("[{}] merge.py: {} documents; blocked: {}; noisy: {} + {} + {} + {} = {}; clean: {}; {:.2f} seconds."
-          "".format(now(), i + 1,
+    print("[{}] merge.py: {} documents; {} blocked; {} (+ {}) = {} noisy; {} clean; {:.2f} seconds."
+          "".format(now(), n,
                     blocked["n"],
-                    noisy["f"], noisy["w"], noisy["p"], noisy["l"], noisy["n"],
+                    " + ".join(str(noisy.get(_, 0)) for _ in NOISE),
+                    noisy["filter"], noisy["n"],
                     clean["n"], time.time() - start),
           file = sys.stderr, flush = True);
   sys.exit(0);
