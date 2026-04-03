@@ -8,7 +8,7 @@
 #SBATCH --mail-type=FAIL
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=64
-#SBATCH --mem-per-cpu=2G
+#SBATCH --mem-per-cpu=4G
 
 set -x
 
@@ -26,6 +26,15 @@ input=$(realpath --strip ${1});
 
 CORES=${SLURM_CPUS_ON_NODE:-4};
 
+FLASH=/flash/project_465002259;
+if [ ! -d ${FLASH}/${USER} ]; then
+  mkdir ${FLASH}/${USER};
+fi
+if [ ! -d ${FLASH}/${USER} ]; then
+  echo "identify.slurm: invalid flash directory ${FLASH}; exit." >&2;
+  exit 1;
+fi
+
 module reset;
 module load LUMI parallel;
 
@@ -36,7 +45,8 @@ echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] identify.slurm: with ${CORES} cores."
 function run() {
   local file=${1};
   local target="$(dirname ${file})/.$(basename ${file} .jsonl.zst).ids";
-  local command="zstdcat ${file} | jq .id | sort -u";
+  local sort="sort --temporary-directory=${FLASH}/${USER} ---parallel=2 --buffer-size=6G"
+  local command="zstdcat ${file} | jq .id | ${sort} -u";
   eval ${command} > ${target};
 } # run()
 export -f run;
