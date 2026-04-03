@@ -76,7 +76,7 @@ def compatible(openlid, glotlid):
 
 def connect(path, buffer):
   if not os.path.isfile(path):
-    print("[{}] merge.py: invalid input file {}; exit."
+    print("[{}] filter.py: invalid input file {}; exit."
           "".format(now(), path),
           file = sys.stderr, flush = True);
     sys.exit(1);
@@ -90,12 +90,12 @@ def parse(chunk, trace, i):
     result = orjson.loads(chunk);
   except UnicodeError as error:
     if trace > 1:
-      print("[{}] merge.py: failed to decode bytes object {}; skip."
+      print("[{}] filter.py: failed to decode bytes object {}; skip."
             "".format(now(), chunk),
             file = sys.stderr, flush = True);
   except Exception as error:
     if trace > 1:
-      print("[{}] merge.py: failed to parse string {}; skip."
+      print("[{}] filter.py: failed to parse string {}; skip."
             "".format(now, chunk),
             file = sys.stderr, flush = True);
   return result;
@@ -106,7 +106,7 @@ def shipout(document, blocked, noisy, clean, statistics,
       or "doc_scores" not in document
       or "openlid_v3" not in document
       or "glotlid_v3" not in document):
-    print("[{}] merge.py: missing obligatory field(s) (line #{}); skip."
+    print("[{}] filter.py: missing obligatory field(s) (line #{}); skip."
           "".format(now(), i),
           file = sys.stderr, flush = True);
     return;
@@ -183,19 +183,19 @@ def main():
 
   io.DEFAULT_BUFFER_SIZE = arguments.buffer;
   if not os.path.isdir(arguments.blocked):
-    print("[{}] merge.py: invalid --blocked target directory {}; exit."
+    print("[{}] filter.py: invalid --blocked target directory {}; exit."
           "".format(now(), arguments.blocked),
           file = sys.stderr, flush = True);
     sys.exit(1);
   blocked = {"path": arguments.blocked, "n": 0};
   if not os.path.isdir(arguments.noisy):
-    print("[{}] merge.py: invalid --noisy target directory {}; exit."
+    print("[{}] filter.py: invalid --noisy target directory {}; exit."
           "".format(now(), arguments.noisy),
           file = sys.stderr, flush = True);
     sys.exit(1);
   noisy = {"path": arguments.noisy, "n": 0};
   if not os.path.isdir(arguments.clean):
-    print("[{}] merge.py: invalid --clean target directory {}; exit."
+    print("[{}] filter.py: invalid --clean target directory {}; exit."
           "".format(now(), arguments.clean),
           file = sys.stderr, flush = True);
     sys.exit(1);
@@ -222,7 +222,7 @@ def main():
     statistics["noisy"]["filter"] =  {"documents": 0, "characters": 0};
     name = os.path.basename(file);
     if arguments.trace > 0:
-      print("[{}] merge.py: reading documents from {}, with {:,} annotations(s)."
+      print("[{}] filter.py: reading documents from {}, with {:,} annotations(s)."
             "".format(now(), name, len(arguments.inputs) - 1),
             file = sys.stderr, flush = True);
     annotations = [];
@@ -234,13 +234,13 @@ def main():
       key = None;
       for i, line in enumerate(stream):
         if not line.startswith(b"{"):
-          print("[{}] merge.py: invalid JSON object {} ({}: #{}); exit."
+          print("[{}] filter.py: invalid JSON object {} ({}: #{}); exit."
                 "".format(now(), line, _, i),
                 file = sys.stderr, flush = True);
           sys.exit(1);
         annotation = parse(line.rstrip(), arguments.trace, i);
         if "id" not in annotation:
-          print("[{}] merge.py: missing .id. in annotation ({}: #{}); skip."
+          print("[{}] filter.py: missing .id. in annotation ({}: #{}); skip."
                 "".format(now(), _, i),
                 file = sys.stderr, flush = True);
         else:
@@ -265,7 +265,7 @@ def main():
       stream.close();
 
     if arguments.trace > 0:
-      print("[{}] merge.py: using {:,} annotations(s)."
+      print("[{}] filter.py: using {:,} annotations(s)."
             "".format(now(), sum(len(_) for _ in annotations)),
             file = sys.stderr, flush = True);
     
@@ -275,7 +275,7 @@ def main():
     #
     for i, line in enumerate(documents):
       if not line.startswith(b"{"):
-        print("[{}] merge.py: invalid JSON object {} ({}: #{}); exit."
+        print("[{}] filter.py: invalid JSON object {} ({}: #{}); exit."
               "".format(now(), line, file, i),
               file = sys.stderr, flush = True);
         sys.exit(1);
@@ -287,7 +287,7 @@ def main():
           document[key] = annotation;
           statistics["annotations"] += 1;
         elif arguments.trace > 0:
-          print("[{}] merge.py: missing {} annotation for .id. {} ({}: #{}); skip."
+          print("[{}] filter.py: missing {} annotation for .id. {} ({}: #{}); skip."
                 "".format(now(), key, id, file, i),
                 file = sys.stderr, flush = True);
 
@@ -310,14 +310,17 @@ def main():
       else:
         total[key] += statistics[key];
     total[name] = statistics;
+    for _ in [".zst", ".zstd", ".jsonl"]:
+      if name.endswith(_): name = name[:-len(_)];
+    with open(os.path.join(arguments.inputs[0], "." + name + ".filter.json"),
+              "w", encoding = "utf-8") as _:
+      json.dump(statistics, _, indent = 2);
     if arguments.trace > 0:
-      print("[{}] merge.py: processed {:,} documents(s)."
+      print("[{}] filter.py: processed {:,} documents(s)."
             "".format(now(), i + 1),
             file = sys.stderr, flush = True);
 
-  for _ in ["zst", "zstd", "jsonl"]:
-    if name.endswith(_): name = name[:-len(_)];
-  with open(os.path.join(arguments.inputs[0], "." + name + "json"), "w", encoding = "utf-8") as _:
+  with open(os.path.join(arguments.inputs[0], ".filter.json"), "w", encoding = "utf-8") as _:
     json.dump(total, _, indent = 2);
 
   #
@@ -330,10 +333,13 @@ def main():
   for _ in clean.values():
     if isinstance(_, sharder): _.close();
   if arguments.trace > 0:
-    print("[{}] merge.py: {:,} documents in {:,} file(s); {:,} blocked; {} (+ {:,}) = {:,} noisy; {:,} clean; {:.2f} seconds."
+    print("[{}] filter.py: {:,} documents in {:,} file(s);"
+          " {:,} blocked; {} (+ {:,}) = {:,} noisy; {:,} clean;"
+          " {:.2f} seconds."
           "".format(now(), total["documents"], total["files"],
                     total["blocked"]["documents"],
-                    " + ".join("{:,}".format(total["noisy"][_]["documents"] if _ in total["noisy"] else 0)
+                    " + ".join("{:,}".format(total["noisy"][_]["documents"]
+                                             if _ in total["noisy"] else 0)
                                for _ in NOISE),
                     total["noisy"]["filter"]["documents"],
                     total["noisy"]["documents"], total["clean"]["documents"],
