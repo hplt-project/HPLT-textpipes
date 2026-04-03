@@ -36,18 +36,18 @@ echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] identify.slurm: with ${CORES} cores."
 function run() {
   local file=${1};
   local target="$(dirname ${file})/.$(basename ${file} .jsonl.zst).ids";
-  local command="zstcat ${file} | jq .id | sort -u";
-  echo ${command} ${target};
+  local command="zstdcat ${file} | jq .id | sort -u";
+  eval ${command} > ${target};
 } # run()
 export -f run;
 
 PARALLEL="parallel --plain --will-cite";
-PARALLEL="${PARALLEL} --group --jobs ${CORES}";
+PARALLEL="${PARALLEL} --group --jobs $[${CORES} / 2]";
 
 #
 # finally, iterate through all the files in this directory
 #
-find ${input} -mindepth 1 -maxdepth 1 -type f -name \*.jsonl.zst \
+find ${input} -mindepth 1 -maxdepth 1 -name \*.jsonl.zst \
 | eval ${PARALLEL} run {} ${target};
      
 echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] identify.slurm: all processing complete."
