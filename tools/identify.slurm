@@ -46,14 +46,13 @@ function run() {
   local file=${1};
   local target="$(dirname ${file})/.$(basename ${file} .jsonl.zst).ids";
   local sort="sort --temporary-directory=${FLASH}/${USER} --parallel=2 --buffer-size=6G"
-  local command="zstdcat ${file} | jq .id | ${sort} -u";
-  echo ${command}  ${target};
-#  eval ${command} > ${target};
+  local command="zstdcat --threads=2 ${file} | jq .id | ${sort} -u";
+  eval ${command} > ${target};
 } # run()
 export -f run;
 
 PARALLEL="parallel --plain --will-cite";
-PARALLEL="${PARALLEL} --group --jobs $[${CORES} / 2]";
+PARALLEL="${PARALLEL} --group --jobs $[${CORES} / 4]";
 
 #
 # finally, iterate through all the files in this directory
