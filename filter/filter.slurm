@@ -60,7 +60,7 @@ echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] filter.slurm: with ${CORES} cores."
 # finally, process out input directory, reading all files sequentially
 #
 echo ${CODE}/filter/filter.py --trace --cores ${CORES} \
-  --blocked ${blocked} --noisy ${noisy) --clean ${clean} \
+  --blocked ${blocked} --noisy ${noisy} --clean ${clean} \
   ${input} $(realpath --strip ${input})/../../annotations/*/${name};
 
 echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] filter.slurm: all processing complete."
