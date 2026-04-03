@@ -47,8 +47,7 @@ function run() {
   local target="$(dirname ${file})/.$(basename ${file} .jsonl.zst).ids";
   local sort="sort --temporary-directory=${FLASH}/${USER} --parallel=2 --buffer-size=6G"
   local command="zstdcat --threads=2 ${file} | jq .id | ${sort} -u";
-  echo ${command}  ${target};
-#  eval ${command} > ${target};
+  eval ${command} > ${target};
 } # run()
 export -f run;
 
