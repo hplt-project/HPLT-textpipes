@@ -31,8 +31,23 @@ input=$(realpath --strip ${1});
 
 name=$(basename ${input});
 blocked=$(realpath --strip ${input}/../../blocked/${name});
+if [ -d ${blocked} ]; then
+  echo "filter.slurm: directory exists: ${blocked}; exit." >&2;
+  exit 1;
+fi
+mkdir -p ${blocked};
 noisy=$(realpath --strip ${input}/../../noisy/${name});
+if [ -d ${noisy} ]; then
+  echo "filter.slurm: directory exists: ${noisy}; exit." >&2;
+  exit 1;
+fi
+mkdir -p ${noisy};
 clean=$(realpath --strip ${input}/../../clean/${name});
+if [ -d ${clean} ]; then
+  echo "filter.slurm: directory exists: ${clean}; exit." >&2;
+  exit 1;
+fi
+mkdir -p ${clean};
 
 CORES=${SLURM_CPUS_ON_NODE:-8};
 
