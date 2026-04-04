@@ -55,7 +55,13 @@ if [ -f ${duplicates} ]; then
 else
   unset duplicates;
 fi
-
+annotations=$(realpath --strip ${input}/../../annotations);
+if find ${annotations}/*/${name} -name \*.jsonl.zst -quit; then
+  annotations=${annotations}/*/${name};
+else
+  unset annotations;
+fi
+					 
 CORES=${SLURM_CPUS_ON_NODE:-8};
 
 PYTHON=${BASE}/oe/local;
@@ -83,7 +89,7 @@ echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] filter.slurm: with ${CORES} cores."
 #
 eval ${CODE}/filter/filter.py --trace --cores ${CORES} ${duplicates} \
   --blocked ${blocked} --noisy ${noisy} --clean ${clean} \
-  ${input} $(realpath --strip ${input})/../../annotations/*/${name};
+  ${input} ${annotations};
 
 echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] filter.slurm: all processing complete."
 exit 0;

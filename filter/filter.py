@@ -19,8 +19,7 @@ import zstandard;
 
 NOISE = ["wds", "prob", "lid",
          "adult_ut1", "adult_text", "length",
-         "word_avg", "char_avg", "lang_ratio",
-         ];
+         "word_avg", "char_avg", "lang_ratio"];
 
 class sharder():
   #
@@ -225,6 +224,7 @@ def main():
   # process one batch at a time, pairing up documents and annotations
   #
   total =  {"documents": 0, "characters": 0, "annotations": 0, "files": 0,
+            "skipped": {"documents": 0, "characters": 0},
             "blocked": {"documents": 0, "characters": 0},
             "noisy": {"documents": 0, "characters": 0},
             "clean": {"documents": 0, "characters": 0}};
