@@ -18,14 +18,12 @@ def now():
   return time.strftime("%H:%M:%S (%d-%b-%y)").lower();
 
 def parse(input):
-  while True:
-    line = next(input["stream"], None);
-    if line is None:
-      input["stream"].close();
-      return None;
-    input["n"] += 1;
-    try:
-    return line.strip("\"\n"), input;
+  line = next(input["stream"], None);
+  if line is None:
+    input["stream"].close();
+    return None, None;
+  input["n"] += 1;
+  return line.strip("\"\n"), input;
     
 def main():
 
@@ -60,7 +58,7 @@ def main():
     if key is None: continue;
     inputs.append((key, input));
 
-  last, flag, n = None, False, 0;
+  last, flag, n, d = None, False, 0, 0;
   while len(inputs):
     #
     # _fix_me_ should use a genuine priority queue
@@ -72,6 +70,7 @@ def main():
     # record duplicate keys, though only once
     #
     if key == last:
+      d += 1;
       if not flag:
         print(key);
         flag = True;
@@ -86,8 +85,8 @@ def main():
     if key is None: continue;
     else: inputs.append((key, input));
       
-  print("[{}] merge.py: {} documents; {} inputs; {:.2f} seconds."
-        "".format(now(), n, len(files), time.time() - start),
+  print("[{}] merge.py: {:,} documents from {:,} inputs; {:,} duplicates; {:.2f} seconds."
+        "".format(now(), n, len(files), d, time.time() - start),
         file = sys.stderr, flush = True);
 
 if __name__ == "__main__":
