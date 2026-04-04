@@ -17,7 +17,7 @@ import time;
 import traceback;
 import zstandard;
 
-NOISE = ["wds", "prob", "lid",
+NOISE = ["wds", "lid", "prob",
          "adult_ut1", "adult_text", "length",
          "word_avg", "char_avg", "lang_ratio"];
 
@@ -126,16 +126,16 @@ def shipout(document, blocked, noisy, clean, statistics,
     counts = statistics["noisy"];
     counts["wds"]["documents"] += 1;
     counts["wds"]["characters"] += c;
-  elif openlid["prob"][0] < 0.5:
-    output = noisy;
-    counts = statistics["noisy"];
-    counts["prob"]["documents"] += 1;
-    counts["prob"]["characters"] += c;
   elif not compatible(openlid["lang"][0], glotlid["lang"][0]):
     output = noisy;
     counts = statistics["noisy"];
     counts["lid"]["documents"] += 1;
     counts["lid"]["characters"] += c;
+  elif openlid["prob"][0] < 0.5:
+    output = noisy;
+    counts = statistics["noisy"];
+    counts["prob"]["documents"] += 1;
+    counts["prob"]["characters"] += c;
   else:
     for _ in NOISE[3:]:
       if filter.startswith(_):
