@@ -17,9 +17,10 @@ import time;
 import traceback;
 import zstandard;
 
-NOISE = ["adult_ut1", "adult_text", "length",
+NOISE = ["wds", "prob", "lid",
+         "adult_ut1", "adult_text", "length",
          "word_avg", "char_avg", "lang_ratio",
-         "wds", "prob", "lid"];
+         ];
 
 class sharder():
   #
@@ -137,14 +138,14 @@ def shipout(document, blocked, noisy, clean, statistics,
     counts["lid"]["documents"] += 1;
     counts["lid"]["characters"] += c;
   else:
-    for _ in NOISE:
-      if _ not in {"wds", "prob", "lid"} and filter.startswith(_):
+    for _ in NOISE[3:]:
+      if filter.startswith(_):
         output = noisy;
         counts = statistics["noisy"];
         counts[_]["documents"] += 1;
         counts[_]["characters"] += c;
     #
-    # guard against other, unknown .filter. values
+    # guard against other, unexpected .filter. values
     #
     if output != noisy and filter != "keep":
       output = noisy;
@@ -231,6 +232,7 @@ def main():
   total["noisy"]["filter"] =  {"documents": 0, "characters": 0};
   for file in files:
     statistics = {"documents": 0, "characters": 0, "annotations": 0,
+                  "skipped": {"documents": 0, "characters": 0},
                   "blocked": {"documents": 0, "characters": 0},
                   "noisy": {"documents": 0, "characters": 0},
                   "clean": {"documents": 0, "characters": 0}};
@@ -298,7 +300,8 @@ def main():
       document = parse(line.rstrip(), arguments.trace, i);
       id = document["id"];
       if id in skip:
-        print(f"skip: {id}", file = sys.stderr, flush = True);
+        statistics["skipped"]["documents"] += 1;
+        statistics["skipped"]["characters"] += len(document["text"]);
         continue;
       for key, table in zip(keys, annotations):
         annotation = table.get(id, None);
@@ -352,10 +355,11 @@ def main():
   for _ in clean.values():
     if isinstance(_, sharder): _.close();
   if arguments.trace > 0:
-    print("[{}] filter.py: {:,} documents in {:,} file(s);"
+    print("[{}] filter.py: {:,} documents in {:,} file(s); {:,} skipped;"
           " {:,} blocked; {} (+ {:,}) = {:,} noisy; {:,} clean;"
           " {:.2f} seconds."
           "".format(now(), total["documents"], total["files"],
+                    total["skipped"]["documents"],
                     total["blocked"]["documents"],
                     " + ".join("{:,}".format(total["noisy"][_]["documents"]
                                              if _ in total["noisy"] else 0)
