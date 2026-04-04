@@ -2,7 +2,7 @@
 
 #
 # for i in jaume/*_*/; do echo sbatch ../oe/textpipes/filter/duplicates.slurm $i; done \
-# | egrep -v "cmn_Hans|rus_Cyrl" > duplicates.slurm
+# | egrep -v "rus_Cyrl" > duplicates.slurm
 # ../oe/textpipes/trickle --start --limit 160 duplicates.slurm
 # while true; do ../oe/textpipes/trickle --limit 160 duplicates.slurm; sleep 60; done
 #
@@ -57,7 +57,7 @@ echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] duplicates.slurm: with ${CORES} cores."
 #
 # finally, process our input directory, reading all files sequentially
 #
-${CODE}/duplicates/duplicates.py ${input} > ${output};
+${CODE}/filter/duplicates.py ${input} > ${output};
 
 echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] duplicates.slurm: all processing complete."
 exit 0;

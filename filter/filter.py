@@ -178,10 +178,12 @@ def main():
   parser.add_argument("--noisy", type = str, required = True);
   parser.add_argument("--clean", type = str, required = True);
   parser.add_argument("--trace", action = "count", default = 0);
+  parser.add_argument("--skip", type = str);
   parser.add_argument("inputs", nargs = "*");
   arguments = parser.parse_args();
 
   io.DEFAULT_BUFFER_SIZE = arguments.buffer;
+
   if not os.path.isdir(arguments.blocked):
     print("[{}] filter.py: invalid --blocked target directory {}; exit."
           "".format(now(), arguments.blocked),
@@ -200,6 +202,20 @@ def main():
           file = sys.stderr, flush = True);
     sys.exit(1);
   clean = {"path": arguments.clean, "n": 0};
+
+  skip = set();
+  if arguments.skip is not None:
+    if not os.path.isfile(arguments.skip):
+      print("[{}] filter.py: invalid --skip file {}; exit."
+            "".format(now(), arguments.skip),
+            file = sys.stderr, flush = True);
+      sys.exit(1);
+    with open(arguments.skip, "r", encoding = "utf-8") as stream:
+      for line in stream: skip.add(line.rstrip());
+    if len(skip):
+      print("[{}] filter.py: skipping {:,} ids from {}."
+              "".format(now(), len(skip), arguments.skip),
+              file = sys.stderr, flush = True);
   #
   # first positional argument is directory containing document batches
   #
@@ -281,6 +297,9 @@ def main():
         sys.exit(1);
       document = parse(line.rstrip(), arguments.trace, i);
       id = document["id"];
+      if id in skip:
+        print(f"skip: {id}", file = sys.stderr, flush = True);
+        continue;
       for key, table in zip(keys, annotations):
         annotation = table.get(id, None);
         if annotation is not None:

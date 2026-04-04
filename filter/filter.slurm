@@ -49,6 +49,13 @@ if [ -d ${clean} ]; then
 fi
 mkdir -p ${clean};
 
+duplicates=${input}/.duplicate.ids;
+if [ -f ${duplicates} ]; then
+  duplicates="--skip ${duplicates}";
+else
+  unset duplicates;
+fi
+
 CORES=${SLURM_CPUS_ON_NODE:-8};
 
 PYTHON=${BASE}/oe/local;
@@ -72,9 +79,9 @@ echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] filter.slurm: processing ${input};"
 echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] filter.slurm: with ${CORES} cores."
 
 #
-# finally, process out input directory, reading all files sequentially
+# finally, process our input directory, reading all files sequentially
 #
-${CODE}/filter/filter.py --trace --cores ${CORES} \
+eval ${CODE}/filter/filter.py --trace --cores ${CORES} ${duplicates} \
   --blocked ${blocked} --noisy ${noisy} --clean ${clean} \
   ${input} $(realpath --strip ${input})/../../annotations/*/${name};
 
