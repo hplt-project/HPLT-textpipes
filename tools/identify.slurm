@@ -44,10 +44,10 @@ echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] identify.slurm: with ${CORES} cores."
 
 function run() {
   local file=${1};
-  local target="$(dirname ${file})/.$(basename ${file} .jsonl.zst).ids";
+  local target="$(dirname ${file})/.$(basename ${file} .jsonl.zst).ids.zst";
   local sort="sort --temporary-directory=${FLASH}/${USER} --parallel=2 --buffer-size=6G"
-  local command="zstdcat --threads=2 ${file} | jq .id | ${sort} -u";
-  eval ${command} > ${target};
+  local command="zstdcat --threads=2 ${file} | jq .id | ${sort} | zstd -c -o ${target}";
+  eval ${command};
 } # run()
 export -f run;
 
