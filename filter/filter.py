@@ -123,16 +123,19 @@ def shipout(document, blocked, noisy, clean, statistics,
     counts = statistics["blocked"];
   elif wds < 0.5:
     output = noisy;
+    document["noise"] = "wds";
     counts = statistics["noisy"];
     counts["wds"]["documents"] += 1;
     counts["wds"]["characters"] += c;
   elif not compatible(openlid["lang"][0], glotlid["lang"][0]):
     output = noisy;
+    document["noise"] = "lid";
     counts = statistics["noisy"];
     counts["lid"]["documents"] += 1;
     counts["lid"]["characters"] += c;
   elif openlid["prob"][0] < 0.5:
     output = noisy;
+    document["noise"] = "prob";
     counts = statistics["noisy"];
     counts["prob"]["documents"] += 1;
     counts["prob"]["characters"] += c;
@@ -140,6 +143,7 @@ def shipout(document, blocked, noisy, clean, statistics,
     for _ in NOISE[3:]:
       if filter.startswith(_):
         output = noisy;
+        document["noise"] = _;
         counts = statistics["noisy"];
         counts[_]["documents"] += 1;
         counts[_]["characters"] += c;
@@ -148,6 +152,7 @@ def shipout(document, blocked, noisy, clean, statistics,
     #
     if output != noisy and filter != "keep":
       output = noisy;
+      document["noise"] = filter;
       counts = statistics["noisy"];
       counts["filter"]["documents"] += 1;
       counts["filter"]["characters"] += c;
@@ -300,8 +305,11 @@ def main():
       document = parse(line.rstrip(), arguments.trace, i);
       id = document["id"];
       if id in skip:
+        _ = len(document["text"]);
+        statistics["documents"] += 1;
+        statistics["characters"] += _;
         statistics["skipped"]["documents"] += 1;
-        statistics["skipped"]["characters"] += len(document["text"]);
+        statistics["skipped"]["characters"] += _;
         continue;
       for key, table in zip(keys, annotations):
         annotation = table.get(id, None);
