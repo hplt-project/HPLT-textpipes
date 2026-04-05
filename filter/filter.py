@@ -286,7 +286,13 @@ def main():
           table[annotation["id"]] = annotation[key]
       annotations.append(table);
       stream.close();
-
+    if len(keys) > 0:
+      if not "missing" in total:
+        total["missing"] = dict();
+        for _ in keys: total["missing"][_] = 0;
+      statistics["missing"] = dict();
+      for _ in keys: statistics["missing"][_] = 0;
+        
     if arguments.trace > 0:
       print("[{}] filter.py: using {:,} annotations(s)."
             "".format(now(), sum(len(_) for _ in annotations)),
@@ -316,10 +322,12 @@ def main():
         if annotation is not None:
           document[key] = annotation;
           statistics["annotations"] += 1;
-        elif arguments.trace > 0:
-          print("[{}] filter.py: missing {} annotation for .id. {} ({}: #{}); skip."
-                "".format(now(), key, id, file, i),
-                file = sys.stderr, flush = True);
+        else:
+          statistics["missing"][key] += 1;
+          if arguments.trace > 0:
+            print("[{}] filter.py: missing {} annotation for .id. {} ({}: #{}); skip."
+                  "".format(now(), key, id, file, i),
+                  file = sys.stderr, flush = True);
 
       #
       # interpret annotations and route into various output bins
