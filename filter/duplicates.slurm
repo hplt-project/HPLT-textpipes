@@ -1,8 +1,7 @@
 #!/bin/bash
 
 #
-# for i in jaume/*_*/; do echo sbatch ../oe/textpipes/filter/duplicates.slurm $i; done \
-# | egrep -v "rus_Cyrl" > duplicates.slurm
+# for i in jaume/*_*/; do echo sbatch ../oe/textpipes/filter/duplicates.slurm $i; done > duplicates.slurm
 # ../oe/textpipes/trickle --start --limit 160 duplicates.slurm
 # while true; do ../oe/textpipes/trickle --limit 160 duplicates.slurm; sleep 60; done
 #
