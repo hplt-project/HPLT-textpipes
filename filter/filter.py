@@ -26,11 +26,12 @@ class sharder():
   # borrowed from monotextor, by jaume zaragoza (prompsit)
   #
   def __init__(self, path, size = 1e11, buffer = 4 * 1024 ** 2,
-               prefix = None, level = 3, cores = 1):
+               prefix = None, infix = None, level = 3, cores = 1):
     self.compressor = zstandard.ZstdCompressor(level = level, threads = cores);
     self.size = size;
     self.buffer = buffer;
     self.prefix = prefix;
+    self.infix = infix;
     if not os.path.isdir(path): os.mkdir(path);
     self.path = path;
     self.bytes = 0;
@@ -42,8 +43,9 @@ class sharder():
     if self.stream: self.stream.close();
     self.bytes = 0;
     self.files += 1;
-    _ = (self.prefix + "_" if self.prefix is not None else "");
-    file = os.path.join(self.path, _ + str(self.files) + ".jsonl.zst");
+    _ = (self.prefix + "_" if self.prefix is not None else "") + str(self.files);
+    if self.infix is not None: _ += f".{self.infix}";
+    file = os.path.join(self.path, _ + ".jsonl.zst");
     self.stream = io.BufferedWriter(zstandard.open(file, "wb", cctx = self.compressor),
                                     buffer_size = self.buffer);
 
@@ -101,7 +103,7 @@ def parse(chunk, trace, i):
   return result;
 
 def shipout(document, blocked, noisy, clean, statistics,
-            size, buffer, level, cores, trace, i):
+            size, separate, buffer, level, cores, trace, i):
   if ("filter" not in document
       or "doc_scores" not in document
       or "openlid_v3" not in document
@@ -156,11 +158,18 @@ def shipout(document, blocked, noisy, clean, statistics,
       counts = statistics["noisy"];
       counts["filter"]["documents"] += 1;
       counts["filter"]["characters"] += c;
-  wds = math.floor(wds * 10);
-  if wds not in output:
-    output[wds] = sharder(output["path"], size = size, buffer = buffer,
-                          prefix = str(wds), level = level, cores = cores);
-  output[wds].write(orjson.dumps(document, option = orjson.OPT_APPEND_NEWLINE));
+  key = wds = str(math.floor(wds * 10));
+  if separate:
+    infix = "cc";
+    _ = document.get("crawl_id", None);
+    if _ == "archivebot": infix = "ab";
+    elif _ is not None and _.startswith("wide"): infix = "ia";
+    key = wds + "." + infix;  
+  if key not in output:
+    output[key] = sharder(output["path"], size = size, buffer = buffer,
+                          prefix = wds, infix = infix,
+                          level = level, cores = cores);
+  output[key].write(orjson.dumps(document, option = orjson.OPT_APPEND_NEWLINE));
   counts["documents"] += 1;
   counts["characters"] += c;
   #
@@ -178,6 +187,7 @@ def main():
   parser.add_argument("--level", type = int, default = 3);
   parser.add_argument("--size", type = int, default = 1e11);
   parser.add_argument("--buffer", type = int, default = 4 * 1024 ** 2);
+  parser.add_argument("--separate", action = "store_true", default = False);
   parser.add_argument("--pattern", type = str, default = "*.zst");
   parser.add_argument("--blocked", type = str, required = True);
   parser.add_argument("--noisy", type = str, required = True);
@@ -225,6 +235,10 @@ def main():
   # first positional argument is directory containing document batches
   #
   files = glob.glob(os.path.join(arguments.inputs[0], arguments.pattern));
+  if arguments.trace > 0:
+    print("[{}] filter.py: found {:,} input file(s)."
+          "".format(now(), len(files)),
+          file = sys.stderr, flush = True);
   #
   # process one batch at a time, pairing up documents and annotations
   #
@@ -333,7 +347,8 @@ def main():
       # interpret annotations and route into various output bins
       #
       shipout(document, blocked, noisy, clean, statistics,
-              arguments.size, arguments.buffer, arguments.level,
+              arguments.size, arguments.separate,
+              arguments.buffer, arguments.level,
               arguments.cores, arguments.trace, i);
     documents.close();
     total["files"] += 1;
