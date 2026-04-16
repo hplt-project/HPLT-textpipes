@@ -13,8 +13,8 @@
 #SBATCH --time=12:00:00
 #SBATCH --mail-type=FAIL
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=64
-#SBATCH --mem-per-cpu=4G
+#SBATCH --cpus-per-task=128
+#SBATCH --mem-per-cpu=2G
 
 set -x
 
@@ -53,7 +53,7 @@ function run() {
   local target="$(dirname ${file})/.$(basename ${file} .jsonl.zst).ids.zst";
   local sort="sort --temporary-directory=${FLASH}/${USER} --parallel=2 --buffer-size=6G"
   local command="zstdcat --threads=2 ${file} | jq .id | ${sort} | zstd -c -o ${target}";
-  eval ${command};
+  if [ ! -f ${target} ]; then eval ${command}; fi;
 } # run()
 export -f run;
 
