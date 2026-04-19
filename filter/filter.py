@@ -82,19 +82,13 @@ def connect(path, buffer):
           "".format(now(), path),
           file = sys.stderr, flush = True);
     sys.exit(1);
-  _ = io.BufferedReader(zstandard.open(path, "rb"), buffer_size = buffer);
+  _ = zstandard.open(path, "r", encoding = "utf-8", errors = "strict");
   return _;
 
 def parse(chunk, trace, i):
   result = None;
   try:
-    if isinstance(chunk, bytes): chunk = chunk.decode("utf-8", errors = "strict");
     result = orjson.loads(chunk);
-  except UnicodeError as error:
-    if trace > 1:
-      print("[{}] filter.py: failed to decode bytes object {}; skip."
-            "".format(now(), chunk),
-            file = sys.stderr, flush = True);
   except Exception as error:
     if trace > 1:
       print("[{}] filter.py: failed to parse string {}; skip."
@@ -235,6 +229,11 @@ def main():
   # first positional argument is directory containing document batches
   #
   files = glob.glob(os.path.join(arguments.inputs[0], arguments.pattern));
+  #
+  # _fix_me_ (oe; 19-apr-26)
+  # while a few of the input files appear corrup, skip over known issues
+  #
+  files = [_ if _.find("batch_31") < 0 and _.find("batch_3201") < 0 for _ in files];
   if arguments.trace > 0:
     print("[{}] filter.py: found {:,} input file(s)."
           "".format(now(), len(files)),
@@ -270,7 +269,7 @@ def main():
       table = dict();
       key = None;
       for i, line in enumerate(stream):
-        if not line.startswith(b"{"):
+        if not line.startswith("{"):
           print("[{}] filter.py: invalid JSON object {} ({}: #{}); exit."
                 "".format(now(), line, _, i),
                 file = sys.stderr, flush = True);
@@ -317,7 +316,7 @@ def main():
     # process one document at a time, aligned by .id. across multiple files
     #
     for i, line in enumerate(documents):
-      if not line.startswith(b"{"):
+      if not line.startswith("{"):
         print("[{}] filter.py: invalid JSON object {} ({}: #{}); exit."
               "".format(now(), line, file, i),
               file = sys.stderr, flush = True);
