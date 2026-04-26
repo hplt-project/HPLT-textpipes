@@ -229,11 +229,6 @@ def main():
   # first positional argument is directory containing document batches
   #
   files = glob.glob(os.path.join(arguments.inputs[0], arguments.pattern));
-  #
-  # _fix_me_ (oe; 19-apr-26)
-  # while a few of the input files appear corrup, skip over known issues
-  #
-  files = [_ if _.find("batch_31") < 0 and _.find("batch_3201") < 0 for _ in files];
   if arguments.trace > 0:
     print("[{}] filter.py: found {:,} input file(s)."
           "".format(now(), len(files)),
