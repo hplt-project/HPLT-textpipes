@@ -183,7 +183,7 @@ def main():
   parser.add_argument("--size", type = int, default = 1e11);
   parser.add_argument("--buffer", type = int, default = 4 * 1024 ** 2);
   parser.add_argument("--separate", action = "store_true", default = False);
-  parser.add_argument("--pattern", type = str, default = "*.zst");
+  parser.add_argument("--pattern", type = str, default = "*.jsonl.zst");
   parser.add_argument("--blocked", type = str, required = True);
   parser.add_argument("--noisy", type = str, required = True);
   parser.add_argument("--clean", type = str, required = True);

@@ -1,9 +1,22 @@
 #!/bin/bash
 
 #
-# assumes a fixed directory layout, where .annotations. are
-# organized in parallel directories to the .input.
+# assumes a fixed directory layout, where “annotations” are organized in
+# parallel directories to the .input.  to remove duplicate “id” values and
+# record filtering statistics, another parallel directory tree “filter” is
+# assumed, with per-language input files “duplicate.ids” and an output file
+# “filter.json”.  an optional “--batch” parameter (following the .input.
+# parameter), with a numeric argument, can be used to select a subset of
+# input files and write outputs into distinct, per-batch subdirectories, e.g.
 #
+# for i in $(seq 0 9); do
+#   sbatch ../oe/textpipes/filter/filter.slurm jaume/eng_Latn --batch $i --separate;
+# done
+#
+# remaining parameters following “--batch” will be passed onto “filter.py”
+# verbatim, for example to activate crawl source separation or tracing.
+#
+
 
 #SBATCH --job-name=filter
 #SBATCH --output=log/%x-%j.out
@@ -29,6 +42,7 @@ input=$(realpath --strip ${1});
 shift;
 
 if [ "${1}" = "--batch" ]; then
+  pattern="--pattern *${2}.jsonl.zst";
   suffix=".${2}";
   shift 2;
 fi
@@ -62,8 +76,12 @@ else
   unset duplicates;
 fi
 
-counts=${filter}/filter.json;
-if [ -f ${counts} ]; then rm -f ${counts}; fi
+counts=${filter}/filter${suffix}.json;
+if [ -f ${counts} ]; then
+  echo "filter.slurm: filter statistics exist: ${clean}; exit." >&2;
+  exit 1;
+fi
+
 
 annotations=$(realpath --strip ${input}/../../annotations);
 if find ${annotations}/*/${name} -name \*.jsonl.zst -quit; then
@@ -100,7 +118,7 @@ echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] filter.slurm: with ${CORES} cores."
 #
 # finally, process our input directory, reading all files sequentially
 #
-eval ${CODE}/filter/filter.py --trace --cores ${CORES} ${duplicates} \
+eval ${CODE}/filter/filter.py --trace --cores ${CORES} ${duplicates} ${pattern} \
   --blocked ${blocked} --noisy ${noisy} --clean ${clean} --counts ${counts} "${@}" \
   ${input} ${annotations};
 
