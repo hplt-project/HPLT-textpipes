@@ -30,10 +30,13 @@ def main():
   start = time.time();
 
   parser = argparse.ArgumentParser(description = "HPLT 4.0 Merge & Filter: Find Duplicate Document IDs");
+  parser.add_argument("--buffer", type = int, default = 4 * 1024 ** 2);
+  parser.add_argument("--trace", type = int, default = 0);
   parser.add_argument("--pattern", type = str, default = ".*.ids.zst");
   parser.add_argument("inputs", nargs = "*");
   arguments = parser.parse_args();
 
+  io.DEFAULT_BUFFER_SIZE = arguments.buffer;
   #
   # open all input files and scan their first line(s)
   #
@@ -48,11 +51,10 @@ def main():
             file = sys.stderr, flush = True);
   print(f"[{now()}] duplicates.py: reading {len(files)} inputs.",
         file = sys.stderr, flush = True);
+
   inputs = [];
-  for file in files:
-    decompressor = zstd.ZstdDecompressor();
-    stream = decompressor.stream_reader(open(file, "rb"));
-    stream = io.TextIOWrapper(stream, encoding = "utf-8", errors = "replace");
+  for i, file in enumerate(files):
+    stream = zstd.open(file, "r", encoding = "utf-8", errors = "strict");
     input = {"stream": stream, "file": file, "n": 0};
     key, input = parse(input);
     if key is None: continue;
@@ -66,6 +68,11 @@ def main():
     inputs.sort(key = itemgetter(0));
     key, input = inputs.pop();
     n += 1;
+    if arguments.trace > 0:
+      if n % arguments.trace == 0:
+        print("[{}] duplicates.py: {:,} documents; {:,} duplicates; {:.2f} seconds."
+              "".format(now(), n, d, time.time() - start),
+              file = sys.stderr, flush = True);
     #
     # record duplicate keys, though only once
     #
