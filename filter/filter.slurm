@@ -12,8 +12,8 @@
 #SBATCH --time=72:00:00
 #SBATCH --mail-type=FAIL
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=16
-#SBATCH --mem-per-cpu=4G
+#SBATCH --cpus-per-task=8
+#SBATCH --mem-per-cpu=32G
 
 BASE=/scratch/project_465002891;
 
@@ -28,20 +28,25 @@ fi
 input=$(realpath --strip ${1});
 shift;
 
+if [ "${1}" = "--batch" ]; then
+  suffix=".${2}";
+  shift 2;
+fi
+
 name=$(basename ${input});
-blocked=$(realpath --strip ${input}/../../blocked/${name});
+blocked=$(realpath --strip ${input}/../../blocked/${name})${suffix};
 if [ -d ${blocked} ]; then
   echo "filter.slurm: directory exists: ${blocked}; exit." >&2;
   exit 1;
 fi
 mkdir -p ${blocked};
-noisy=$(realpath --strip ${input}/../../noisy/${name});
+noisy=$(realpath --strip ${input}/../../noisy/${name})${suffix};
 if [ -d ${noisy} ]; then
   echo "filter.slurm: directory exists: ${noisy}; exit." >&2;
   exit 1;
 fi
 mkdir -p ${noisy};
-clean=$(realpath --strip ${input}/../../clean/${name});
+clean=$(realpath --strip ${input}/../../clean/${name})${suffix};
 if [ -d ${clean} ]; then
   echo "filter.slurm: directory exists: ${clean}; exit." >&2;
   exit 1;

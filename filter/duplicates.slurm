@@ -10,11 +10,11 @@
 #SBATCH --output=log/%x-%j.out
 #SBATCH --partition=small
 #SBATCH --account=project_465002530
-#SBATCH --time=12:00:00
+#SBATCH --time=72:00:00
 #SBATCH --mail-type=FAIL
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
-#SBATCH --mem-per-cpu=4G
+#SBATCH --mem-per-cpu=32G
 
 set -x
 
@@ -56,7 +56,7 @@ echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] duplicates.slurm: with ${CORES} cores."
 #
 # finally, process our input directory, reading all files sequentially
 #
-${CODE}/filter/duplicates.py ${input} > ${output};
+${CODE}/filter/duplicates.py --trace 1000000 ${input} > ${output};
 
 echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] duplicates.slurm: all processing complete."
 exit 0;
