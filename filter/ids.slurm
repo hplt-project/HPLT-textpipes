@@ -5,6 +5,9 @@
 # ../oe/textpipes/trickle --start --limit 160 ids.slurm
 # while true; do ../oe/textpipes/trickle --limit 160 ids.slurm; sleep 60; done
 #
+# sort --batch-size=512 --buffer-size=32G --parallel=4 --temporary-directory=/flash/project_465002259/oe \
+#   --merge jaume/eng_Latn/.*.ids | uniq -d > jaume/eng_Latn/.duplicate.ids
+#
 
 #SBATCH --job-name=ids
 #SBATCH --output=log/%x-%j.out
@@ -52,7 +55,7 @@ function run() {
   local file=${1};
   local target="$(dirname ${file})/.$(basename ${file} .jsonl.zst).ids.zst";
   local sort="sort --temporary-directory=${FLASH}/${USER} --parallel=2 --buffer-size=6G"
-  local command="zstdcat --threads=2 ${file} | jq .id | ${sort} | zstd -c -o ${target}";
+  local command="zstdcat --threads=2 ${file} | jq .id | ${sort} > ${target}";
   if [ ! -f ${target} ]; then eval ${command}; fi;
 } # run()
 export -f run;
