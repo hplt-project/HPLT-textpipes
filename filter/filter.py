@@ -158,7 +158,8 @@ def shipout(document, blocked, noisy, clean, statistics,
     _ = document.get("crawl_id", None);
     if _ == "archivebot": infix = "ab";
     elif _ is not None and _.startswith("wide"): infix = "ia";
-    key = wds + "." + infix;  
+    key = wds + "." + infix;
+  else: infix = None;
   if key not in output:
     output[key] = sharder(output["path"], size = size, buffer = buffer,
                           prefix = wds, infix = infix,
@@ -186,6 +187,7 @@ def main():
   parser.add_argument("--blocked", type = str, required = True);
   parser.add_argument("--noisy", type = str, required = True);
   parser.add_argument("--clean", type = str, required = True);
+  parser.add_argument("--counts", type = str);
   parser.add_argument("--trace", action = "count", default = 0);
   parser.add_argument("--skip", type = str);
   parser.add_argument("inputs", nargs = "*");
@@ -229,11 +231,6 @@ def main():
   # first positional argument is directory containing document batches
   #
   files = glob.glob(os.path.join(arguments.inputs[0], arguments.pattern));
-  #
-  # _fix_me_ (oe; 19-apr-26)
-  # while a few of the input files appear corrup, skip over known issues
-  #
-  files = [_ if _.find("batch_31") < 0 and _.find("batch_3201") < 0 for _ in files];
   if arguments.trace > 0:
     print("[{}] filter.py: found {:,} input file(s)."
           "".format(now(), len(files)),
@@ -364,7 +361,8 @@ def main():
     total[name] = statistics;
     for _ in [".zst", ".zstd", ".jsonl"]:
       if name.endswith(_): name = name[:-len(_)];
-    with open(os.path.join(arguments.inputs[0], "." + name + ".filter.json"),
+    with open(os.path.join(arguments.inputs[0],
+                           "." + name + ".filter.json"),
               "w", encoding = "utf-8") as _:
       json.dump(statistics, _, indent = 2);
     if arguments.trace > 0:
@@ -372,8 +370,9 @@ def main():
             "".format(now(), i + 1),
             file = sys.stderr, flush = True);
 
-  with open(os.path.join(arguments.inputs[0], ".filter.json"), "w", encoding = "utf-8") as _:
-    json.dump(total, _, indent = 2);
+  if arguments.counts:
+    with open(arguments.counts, "w", encoding = "utf-8") as _:
+      json.dump(total, _, indent = 2);
 
   #
   # wrap up: close all input and output streams

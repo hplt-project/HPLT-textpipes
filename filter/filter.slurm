@@ -15,9 +15,7 @@
 #SBATCH --cpus-per-task=16
 #SBATCH --mem-per-cpu=4G
 
-set -x
-
-BASE=/scratch/project_465002259;
+BASE=/scratch/project_465002891;
 
 if [ -z "${1}" ]; then
   echo "filter.slurm: missing argument (input directory); exit." >&2;
@@ -50,12 +48,18 @@ if [ -d ${clean} ]; then
 fi
 mkdir -p ${clean};
 
-duplicates=${input}/.duplicate.ids;
+filter=$(realpath --strip ${input}/../../filter/${name});
+if [ ! -d ${filter} ]; then mkdir -p ${filter}; fi
+duplicates=${filter}/duplicate.ids;
 if [ -f ${duplicates} ]; then
   duplicates="--skip ${duplicates}";
 else
   unset duplicates;
 fi
+
+counts=${filter}/filter.json;
+if [ -f ${counts} ]; then rm -f ${counts}; fi
+
 annotations=$(realpath --strip ${input}/../../annotations);
 if find ${annotations}/*/${name} -name \*.jsonl.zst -quit; then
   annotations=${annotations}/*/${name};
@@ -92,7 +96,7 @@ echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] filter.slurm: with ${CORES} cores."
 # finally, process our input directory, reading all files sequentially
 #
 eval ${CODE}/filter/filter.py --trace --cores ${CORES} ${duplicates} \
-  --blocked ${blocked} --noisy ${noisy} --clean ${clean} "${@}" \
+  --blocked ${blocked} --noisy ${noisy} --clean ${clean} --counts ${counts} "${@}" \
   ${input} ${annotations};
 
 echo "[$(date +"%Y-%m-%d (%H:%M:%S)")] filter.slurm: all processing complete."
