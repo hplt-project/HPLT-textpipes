@@ -12,8 +12,8 @@
 #SBATCH --time=72:00:00
 #SBATCH --mail-type=FAIL
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=16
-#SBATCH --mem-per-cpu=8G
+#SBATCH --cpus-per-task=8
+#SBATCH --mem-per-cpu=32G
 
 set -x
 
