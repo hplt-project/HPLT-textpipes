@@ -70,7 +70,7 @@ mkdir -p ${clean};
 filter=$(realpath --strip ${input}/../../filter/${name});
 if [ ! -d ${filter} ]; then mkdir -p ${filter}; fi
 duplicates=${filter}/duplicate.ids;
-if [ -f ${duplicates} ]; then
+if [ -s ${duplicates} ]; then
   duplicates="--skip ${duplicates}";
 else
   unset duplicates;
