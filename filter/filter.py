@@ -238,7 +238,8 @@ def main():
   #
   # process one batch at a time, pairing up documents and annotations
   #
-  total =  {"documents": 0, "characters": 0, "annotations": 0, "files": 0,
+  total =  {"documents": 0, "characters": 0, "annotations": 0,
+            "files": 0, "time": 0,
             "skipped": {"documents": 0, "characters": 0},
             "blocked": {"documents": 0, "characters": 0},
             "noisy": {"documents": 0, "characters": 0},
@@ -371,6 +372,7 @@ def main():
             file = sys.stderr, flush = True);
 
   if arguments.counts:
+    total["time"] = time.time() - start;
     with open(arguments.counts, "w", encoding = "utf-8") as _:
       json.dump(total, _, indent = 2);
 
