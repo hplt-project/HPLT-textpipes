@@ -13,6 +13,7 @@ from subprocess import Popen, PIPE;
 import sys;
 import time;
 import traceback;
+import uuid;
 from xxhash import xxh128_hexdigest;
 import zstandard;
 
@@ -218,6 +219,7 @@ def main():
   parser.add_argument("--pipe", action = "store_true");
   parser.add_argument("--mode", type = str, default = "bytes");
   parser.add_argument("--filter", type = str, default = None);
+  parser.add_argument("--uuid", action = "store_true");
   parser.add_argument("--lid", action = "append", default = []);
   parser.add_argument("--pool", type = str);
   parser.add_argument("--compress", type = str);
@@ -271,6 +273,12 @@ def main():
             file = sys.stderr, flush = True);
       sys.exit(1);
     bins["path"] = arguments.bin;
+  if arguments.uuid and arguments.mode != "json":
+    print("zstdconcat.py: --uuid injection requires JSON --mode; exit."
+          "".format(arguments.pool),
+          file = sys.stderr, flush = True);
+    sys.exit(1);
+
   #
   # increase output buffer size
   #
@@ -405,6 +413,7 @@ def main():
             for chunk in chunks: result |= chunk;
         else:
           result = ("" if mode == "string" else b"").join(chunks);
+        if arguments.uuid: result["uuid"] = str(uuid.uuid4());
         #
         # optionally, hard-wire pool-level annotation and normalization:
         #
