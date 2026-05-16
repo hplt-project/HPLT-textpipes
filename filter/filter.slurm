@@ -10,8 +10,18 @@
 # input files and write outputs into distinct, per-batch subdirectories, e.g.
 #
 # for i in $(seq 0 9); do
-#   sbatch ../oe/textpipes/filter/filter.slurm jaume/eng_Latn --batch $i --separate;
+#   sbatch ../oe/textpipes/filter/filter.slurm monotext/cmn_Hans --batch $i --separate;
 # done
+#
+# for i in $(seq 0 9); do
+#   sbatch ../oe/textpipes/filter/filter.slurm monotext/eng_Latn --batch $i --separate;
+# done
+#
+# for i in $(seq 0 9); do
+#   sbatch ../oe/textpipes/filter/filter.slurm monotext/rus_Cyrl --batch $i --separate;
+# done
+#
+# for i in $(cat etc/openeurollm.txt); do sbatch ../oe/textpipes/filter/filter.slurm monotext/$i; done
 #
 # remaining parameters following “--batch” will be passed onto “filter.py”
 # verbatim, for example to activate crawl source separation or tracing.
