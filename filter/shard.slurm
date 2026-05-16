@@ -1,23 +1,17 @@
 #!/bin/bash
 
 #
-# for i in $(seq 0 9); do
-#   sbatch ../oe/textpipes/filter/filter.slurm monotext/cmn_Hans --batch $i --separate;
-# done
+# for i in cmn_Hans eng_Latn rus_Cyrl; do \
+#   for j in $(seq 5 10); do for k in ab cc ia; do \
+#     sbatch ../oe/textpipes/filter/shard.slurm clean/${i} ${j} ${k}; \
+# done; done; done
 #
-# for i in $(seq 0 9); do
-#   sbatch ../oe/textpipes/filter/filter.slurm monotext/eng_Latn --batch $i --separate;
-# done
+# for i in cmn_Hans eng_Latn rus_Cyrl; do \
+#   for j in $(seq 0 10); do for k in ab cc ia; do \
+#     sbatch ../oe/textpipes/filter/shard.slurm noisy/${i} ${j} ${k}; \
+# done; done; done
 #
-# for i in $(seq 0 9); do
-#   sbatch ../oe/textpipes/filter/filter.slurm monotext/rus_Cyrl --batch $i --separate;
-# done
-#
-# for i in $(cat etc/openeurollm.txt); do sbatch ../oe/textpipes/filter/filter.slurm monotext/$i; done
-#
-# remaining parameters following “--batch” will be passed onto “filter.py”
-# verbatim, for example to activate crawl source separation or tracing.
-#
+
 
 
 #SBATCH --job-name=shard
