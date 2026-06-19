@@ -73,6 +73,18 @@ def compatible(openlid, glotlid):
         and openlid[1] in {"Hans", "Hant"}
         and glotlid[1] == "Hani"):
     return True;
+  elif (openlid[0] == "ara"
+        and glotlid[0] in {"aao", "abh", "abv", "acm", "acq", "acw",
+                           "acx", "acy", "adf", "aeb", "aec", "afb",
+                           "apc", "apd", "arb", "arq", "ars", "ary",
+                           "arz", "auz", "avl", "ayh", "ayl", "ayn",
+                           "ayp", "pga", "shu", "ssh"}
+        and openlid[1] == glotlid[1]):
+    return True;
+  elif (openlid[0] == "fas"
+        and glotlid[0] in {"pes", "prs"}
+        and openlid[1] == glotlid[1]):
+    return True;
   else:
     return False;
 
