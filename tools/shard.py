@@ -32,7 +32,8 @@ class sharder():
     self.files += 1;
     _ = (self.prefix + "_" if self.prefix is not None else "");
     file = os.path.join(self.path, _ + str(self.files) + ".jsonl.zst");
-    self.stream = io.BufferedWriter(zstandard.open(file, "wb", cctx = self.compressor),
+    self.stream = io.BufferedWriter(zstandard.open(file,
+                                                   "wb", cctx = self.compressor),
                                     buffer_size = self.buffer);
 
   def write(self, chunk):
@@ -54,7 +55,7 @@ def main():
 
   start = time.time();
 
-  parser = argparse.ArgumentParser(description = "re-package compressed files into ");
+  parser = argparse.ArgumentParser(description = "re-package compressed files");
   parser.add_argument("--cores", type = int, default = 8);
   parser.add_argument("--level", type = int, default = 3);
   parser.add_argument("--size", type = int, default = 1e11);
